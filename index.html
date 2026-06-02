@@ -1322,7 +1322,7 @@ function ReviewItem({ it, idx, settings }) {
             </div>
           )}
           <div className="mt-2 p-3 rounded-lg bg-sky-50 border border-sky-100">
-            <div className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1 flex items-center gap-1.5"><Icon name="bulb" size={13} />Explanation {aiEnabled(settings) && it.type !== "email" ? "(AI)" : ""}</div>
+            <div className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1 flex items-center gap-1.5"><Icon name="bulb" size={13} />Explanation</div>
             {loading ? <div className="text-slate-400 flex items-center gap-2"><span className="w-4 h-4 border-2 border-slate-300 border-t-sky-500 rounded-full bpo-spin inline-block" />Generating…</div>
               : <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">{it.type === "email" ? it.explain : (exp || it.explain)}</div>}
           </div>
@@ -1396,7 +1396,7 @@ function ResultView({ result, settings, go, onRetake, onBack }) {
         </div>
         {coachLoading && <div className="text-slate-400 flex items-center gap-2 mt-3"><span className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full bpo-spin inline-block" />Coaching engine is reviewing your result…</div>}
         {coach && <div className="mt-3 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 text-slate-700 whitespace-pre-wrap leading-relaxed text-sm">{coach}</div>}
-        {!coach && !coachLoading && <p className="text-sm text-slate-400 mt-2">Get a personalized breakdown of strengths, focus areas, and a study plan{aiEnabled(settings) ? " (powered by Claude)" : " (offline coach)"}.</p>}
+        {!coach && !coachLoading && <p className="text-sm text-slate-400 mt-2">Get a personalized breakdown of strengths, focus areas, and a study plan.</p>}
       </Card>
 
       {/* Review */}
@@ -1542,7 +1542,7 @@ function CoachView({ results, settings, go }) {
   const suggestions = ["How do I improve my grammar?", "Give me a study plan", "Tips for handling angry customers", "How can I type faster?"];
 
   return (
-    <PageHeader title="AI Coach" icon="brain" go={go} badge={aiEnabled(settings) ? <Badge tone="indigo"><Icon name="sparkles" size={11} />Claude live</Badge> : <Badge tone="slate"><Icon name="shield" size={11} />Offline coach</Badge>}>
+    <PageHeader title="AI Coach" icon="brain" go={go}>
       <Card pad={false} className="flex flex-col h-[68vh]">
         <div className="flex-1 overflow-auto p-4 space-y-3">
           {msgs.map((m, i) => (
@@ -1686,7 +1686,7 @@ function ChatView({ settings, go }) {
 
   if (!scenario) {
     return (
-      <PageHeader title="Chat Simulator" icon="chat" go={go} badge={aiEnabled(settings) ? <Badge tone="indigo"><Icon name="sparkles" size={11} />Claude customer</Badge> : <Badge tone="slate"><Icon name="shield" size={11} />Scripted customer</Badge>}>
+      <PageHeader title="Chat Simulator" icon="chat" go={go}>
         <p className="text-slate-500 mb-4 text-sm">Handle a simulated customer chat. You play the agent; the system plays the customer. You're scored on empathy, action, and a proper close.</p>
         <div className="grid sm:grid-cols-2 gap-3">
           {CHAT_SCENARIOS.map((sc) => (
@@ -1840,29 +1840,6 @@ function AppSettings({ open, onClose, settings, onSave, onClearData }) {
           <input type="range" min="50" max="90" value={form.passMark} onChange={(e) => upd("passMark", Number(e.target.value))} className="mt-2 w-full accent-sky-600" />
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-          <div className="flex items-center gap-2 font-semibold text-slate-700"><Icon name="sparkles" size={16} className="text-indigo-500" />AI Coach (optional)</div>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed">All AI features work fully offline by default. To use the live Claude API, add a <b>proxy URL</b> (recommended) or an <b>API key</b>. Note: an API key placed in a frontend file is visible to anyone with the file — use only for personal/local testing, and prefer a proxy in production.</p>
-          <div className="mt-3 space-y-3">
-            <div>
-              <label className="text-xs font-semibold text-slate-600">Proxy URL (recommended)</label>
-              <input value={form.proxyUrl} onChange={(e) => upd("proxyUrl", e.target.value)} placeholder="https://your-proxy.example.com/messages"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600">Anthropic API key (direct, local use only)</label>
-              <input type="password" value={form.apiKey} onChange={(e) => upd("apiKey", e.target.value)} placeholder="sk-ant-…"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600">Model</label>
-              <input value={form.model} onChange={(e) => upd("model", e.target.value)} placeholder="claude-sonnet-4-6"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
-            </div>
-            <div className="text-xs flex items-center gap-1.5">{aiEnabled(form) ? <span className="text-emerald-600 font-semibold inline-flex items-center gap-1"><Icon name="wifi" size={13} />Live AI configured</span> : <span className="text-slate-400 inline-flex items-center gap-1"><Icon name="wifiOff" size={13} />Offline mode (no key set)</span>}</div>
-          </div>
-        </div>
-
         <div className="flex items-center justify-between pt-1">
           <button onClick={onClearData} className="text-sm font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center gap-1.5"><Icon name="alert" size={15} />Clear all data</button>
           <div className="flex gap-2">
@@ -1958,7 +1935,6 @@ function App() {
                 ))}
               </nav>
               <div className="ml-auto flex items-center gap-2">
-                <span className="hidden sm:inline-flex">{aiEnabled(settings) ? <Badge tone="indigo"><Icon name="wifi" size={11} />AI live</Badge> : <Badge tone="slate"><Icon name="wifiOff" size={11} />Offline</Badge>}</span>
                 <button onClick={() => setSettingsOpen(true)} className="w-9 h-9 rounded-xl grid place-items-center text-slate-500 hover:bg-slate-100"><Icon name="settings" size={19} /></button>
                 <div className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-500 font-bold text-sm" title={settings.candidate || "Candidate"}>{(settings.candidate || "C").trim().charAt(0).toUpperCase()}</div>
               </div>
