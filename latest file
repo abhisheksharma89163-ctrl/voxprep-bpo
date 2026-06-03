@@ -1,0 +1,2144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voxprep — BPO Voice &amp; English Assessment Practice</title>
+
+<!-- Branded favicon (inline SVG, no external file needed) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='rgb(15,23,42)'/><path d='M16 19L32 47L48 19' fill='none' stroke='rgb(56,189,248)' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='rgb(15,23,42)'/><path d='M16 19L32 47L48 19' fill='none' stroke='rgb(56,189,248)' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+
+<!-- Theme color + mobile "add to home screen" support -->
+<meta name="theme-color" content="#0ea5e9" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Voxprep" />
+
+<!-- Social share cards (after deploy, set og:url + og:image to your live link) -->
+<meta property="og:title" content="Voxprep — BPO Exam &amp; Communication Practice" />
+<meta property="og:description" content="Free Versant / SVAR / Berlitz-style BPO assessment practice with AI coaching, a real typing test, and a live chat simulator." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Voxprep — BPO Exam &amp; Communication Practice" />
+<meta name="twitter:description" content="Free BPO assessment practice with AI coaching." />
+<meta name="description" content="Voxprep — free BPO computer-based test practice: grammar, vocabulary, reading, situational judgment, email writing, typing and live chat handling, with built-in AI coaching. Versant / SVAR / Berlitz-style." />
+
+<!-- Fonts (optional, graceful fallback) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<!-- React + ReactDOM (UMD) -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- Tailwind Play CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Babel standalone (transpiles the JSX below in-browser) -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+  :root { color-scheme: light; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 100% -10%, rgba(56,189,248,0.12), transparent 60%),
+      radial-gradient(1000px 500px at -10% 0%, rgba(99,102,241,0.10), transparent 55%),
+      #f1f5f9;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: content-box; }
+  .bpo-fade { animation: bpoFade .35s ease both; }
+  @keyframes bpoFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .bpo-pop { animation: bpoPop .25s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes bpoPop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+  .bpo-spin { animation: bpoSpin 1s linear infinite; }
+  @keyframes bpoSpin { to { transform: rotate(360deg); } }
+  .bpo-pulse { animation: bpoPulse 1.6s ease-in-out infinite; }
+  @keyframes bpoPulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+  .tabular { font-variant-numeric: tabular-nums; }
+  textarea, input { font-family: inherit; }
+  .no-sel { user-select: none; }
+  /* Loading splash hidden once React mounts */
+  #boot { position: fixed; inset: 0; display: grid; place-items: center; background: #f1f5f9; z-index: 50; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="boot">
+    <div style="text-align:center;color:#475569;font-weight:600">
+      <div style="width:42px;height:42px;border:4px solid #cbd5e1;border-top-color:#0ea5e9;border-radius:999px;margin:0 auto 14px" class="bpo-spin"></div>
+      Loading Voxprep…
+      <div style="font-weight:400;font-size:13px;margin-top:6px;color:#94a3b8">Compiling assessment engine</div>
+    </div>
+  </div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useReducer, useRef, useCallback, useMemo } = React;
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
+const pct = (a, b) => (b <= 0 ? 0 : Math.round((a / b) * 100));
+const bandColor = (v) => (v >= 85 ? "#10b981" : v >= 70 ? "#0ea5e9" : v >= 50 ? "#f59e0b" : "#f43f5e");
+const bandText = (v) => (v >= 85 ? "text-emerald-600" : v >= 70 ? "text-sky-600" : v >= 50 ? "text-amber-600" : "text-rose-600");
+const bandBg = (v) => (v >= 85 ? "bg-emerald-500" : v >= 70 ? "bg-sky-500" : v >= 50 ? "bg-amber-500" : "bg-rose-500");
+const gradeFromScore = (v) =>
+  v >= 90 ? "A1 · Expert" : v >= 80 ? "B2 · Advanced" : v >= 70 ? "B1 · Proficient" : v >= 55 ? "A2 · Developing" : "Pre-A · Needs Work";
+const fmtClock = (s) => {
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s / 60), r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+};
+const fmtDate = (ts) => new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const uid = () => Math.random().toString(36).slice(2, 9);
+const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const sample = (arr, n) => shuffle(arr).slice(0, Math.min(n, arr.length));
+
+/* ============================================================
+   ICONS (inline SVG — lucide-style, zero dependency)
+   ============================================================ */
+const PATHS = {
+  dashboard: "M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z",
+  clipboard: "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2",
+  chart: "M3 3v18h18M7 14l4-4 3 3 5-6",
+  brain: "M12 5a3 3 0 0 0-5.9-.7A3 3 0 0 0 4 9a3 3 0 0 0 1 5 3 3 0 0 0 6 1V5zM12 5a3 3 0 0 1 5.9-.7A3 3 0 0 1 20 9a3 3 0 0 1-1 5 3 3 0 0 1-6 1V5z",
+  keyboard: "M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M8 14h8",
+  chat: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  trending: "M3 17l6-6 4 4 8-8M21 7v6h-6",
+  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 7 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 14H4.5a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 7 8.6a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 12 4.6h.01A1.65 1.65 0 0 0 14 4.6a1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 10H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+  clock: "M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+  flag: "M4 22V4M4 4l11 0 -2 4 2 4H4",
+  check: "M20 6L9 17l-5-5",
+  checkCircle: "M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3",
+  x: "M18 6L6 18M6 6l12 12",
+  xCircle: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15 9l-6 6M9 9l6 6",
+  left: "M15 18l-6-6 6-6",
+  right: "M9 18l6-6-6-6",
+  down: "M6 9l6 6 6-6",
+  up: "M18 15l-6-6-6 6",
+  play: "M5 3l14 9-14 9V3z",
+  refresh: "M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5",
+  trophy: "M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM5 9a3 3 0 0 1-3-3V5h3M19 9a3 3 0 0 0 3-3V5h-3",
+  alert: "M12 9v4M12 17h.01M10.3 3.86l-8.06 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3l-8.06-14a2 2 0 0 0-3.46 0z",
+  user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+  sparkles: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z",
+  lock: "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4",
+  book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z",
+  mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 7l-10 6L2 7",
+  target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+  zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
+  menu: "M3 12h18M3 6h18M3 18h18",
+  info: "M12 16v-4M12 8h.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
+  star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
+  bulb: "M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  wifi: "M5 12.55a11 11 0 0 1 14 0M8.5 16.1a6 6 0 0 1 7 0M2 8.82a15 15 0 0 1 20 0M12 20h.01",
+  wifiOff: "M2 8.82a15 15 0 0 1 4.17-2.65M10.66 5c4.01-.36 8.14.9 11.34 3.76M16.85 11.25a10 10 0 0 1 2.22 1.68M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 19.71a1.41 1.41 0 0 0 2.58 0M2 2l20 20",
+  pause: "M6 4h4v16H6zM14 4h4v16h-4z",
+  filter: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
+  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  gauge: "M12 14l4-4M3.34 19a10 10 0 1 1 17.32 0",
+  list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  award: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM8.21 13.89L7 23l5-3 5 3-1.21-9.12",
+  building: "M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01",
+  headset: "M3 14v-2a9 9 0 0 1 18 0v2M21 14v3a3 3 0 0 1-3 3h-3M3 14a2 2 0 0 1 2-2h1v6H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2z",
+};
+function Icon({ name, size = 20, className = "", strokeWidth = 2, fill = "none" }) {
+  const d = PATHS[name] || PATHS.info;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      {d.split("M").filter(Boolean).map((seg, i) => <path key={i} d={"M" + seg} />)}
+    </svg>
+  );
+}
+
+/* ============================================================
+   CHARTS (hand-rolled SVG — no external chart lib)
+   ============================================================ */
+function ScoreRing({ value = 0, size = 132, stroke = 12, label = "Overall", showGrade = true }) {
+  const v = clamp(value);
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - v / 100);
+  const col = bandColor(v);
+  return (
+    <div className="relative inline-grid place-items-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#e2e8f0" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={col} strokeWidth={stroke} fill="none"
+          strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)" }} />
+      </svg>
+      <div className="absolute text-center">
+        <div className="text-3xl font-extrabold tabular" style={{ color: col }}>{v}<span className="text-base font-semibold text-slate-400">%</span></div>
+        {showGrade && <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{label}</div>}
+      </div>
+    </div>
+  );
+}
+
+function SectionBars({ data = [] }) {
+  if (!data.length) return <div className="text-sm text-slate-400">No section data.</div>;
+  return (
+    <div className="space-y-3">
+      {data.map((d) => (
+        <div key={d.label}>
+          <div className="flex justify-between text-sm mb-1">
+            <span className="font-medium text-slate-600">{d.label}</span>
+            <span className={"font-bold tabular " + bandText(d.value)}>{d.value}%</span>
+          </div>
+          <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+            <div className={"h-full rounded-full " + bandBg(d.value)} style={{ width: d.value + "%", transition: "width .9s cubic-bezier(.2,.8,.2,1)" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RadarChart({ axes = [], size = 260 }) {
+  const n = axes.length;
+  if (n < 3) return <SectionBars data={axes} />;
+  const cx = size / 2, cy = size / 2, R = size / 2 - 38;
+  const ang = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const pt = (i, val) => [cx + (R * val / 100) * Math.cos(ang(i)), cy + (R * val / 100) * Math.sin(ang(i))];
+  const poly = axes.map((a, i) => pt(i, clamp(a.value)).join(",")).join(" ");
+  return (
+    <svg width={size} height={size} className="mx-auto">
+      {[25, 50, 75, 100].map((ring) => (
+        <polygon key={ring} fill="none" stroke="#e2e8f0" strokeWidth="1"
+          points={axes.map((_, i) => pt(i, ring).join(",")).join(" ")} />
+      ))}
+      {axes.map((_, i) => { const [x, y] = pt(i, 100); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#e2e8f0" />; })}
+      <polygon points={poly} fill="rgba(14,165,233,.18)" stroke="#0ea5e9" strokeWidth="2" />
+      {axes.map((a, i) => { const [x, y] = pt(i, clamp(a.value)); return <circle key={i} cx={x} cy={y} r="3.5" fill="#0ea5e9" />; })}
+      {axes.map((a, i) => {
+        const [x, y] = pt(i, 118);
+        return <text key={i} x={x} y={y} fontSize="10.5" fontWeight="600" fill="#64748b" textAnchor="middle" dominantBaseline="middle">{a.label}</text>;
+      })}
+    </svg>
+  );
+}
+
+function LineTrend({ points = [], width = 560, height = 210, yMax = 100 }) {
+  const pl = 34, pr = 14, pt = 14, pb = 26;
+  const W = width - pl - pr, H = height - pt - pb;
+  if (points.length === 0) return <div className="text-sm text-slate-400 p-6 text-center">No attempts yet — your trend will appear here.</div>;
+  const xAt = (i) => pl + (points.length === 1 ? W / 2 : (i * W) / (points.length - 1));
+  const yAt = (v) => pt + H - (clamp(v, 0, yMax) / yMax) * H;
+  const line = points.map((p, i) => `${xAt(i)},${yAt(p.value)}`).join(" ");
+  const area = `${pl},${pt + H} ${line} ${xAt(points.length - 1)},${pt + H}`;
+  const everyN = Math.ceil(points.length / 8);
+  return (
+    <svg width="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
+      {[0, 25, 50, 75, 100].map((g) => (
+        <g key={g}>
+          <line x1={pl} y1={yAt(g)} x2={width - pr} y2={yAt(g)} stroke="#eef2f7" />
+          <text x={pl - 6} y={yAt(g)} fontSize="9" fill="#94a3b8" textAnchor="end" dominantBaseline="middle">{g}</text>
+        </g>
+      ))}
+      <polygon points={area} fill="rgba(14,165,233,.12)" />
+      <polyline points={line} fill="none" stroke="#0ea5e9" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={xAt(i)} cy={yAt(p.value)} r="3.5" fill="#fff" stroke="#0ea5e9" strokeWidth="2" />
+          {i % everyN === 0 && <text x={xAt(i)} y={height - 8} fontSize="9" fill="#94a3b8" textAnchor="middle">{p.label}</text>}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function Donut({ segments = [], size = 150, stroke = 20 }) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  let acc = 0;
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#f1f5f9" strokeWidth={stroke} fill="none" />
+        {segments.map((s, i) => {
+          const frac = s.value / total, dash = `${c * frac} ${c}`, offset = -c * acc; acc += frac;
+          return <circle key={i} cx={size / 2} cy={size / 2} r={r} stroke={s.color} strokeWidth={stroke} fill="none"
+            strokeDasharray={dash} strokeDashoffset={offset} />;
+        })}
+      </svg>
+      <div className="space-y-1.5">
+        {segments.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 text-sm">
+            <span className="w-3 h-3 rounded-sm" style={{ background: s.color }} />
+            <span className="text-slate-600">{s.label}</span>
+            <span className="font-bold text-slate-800 tabular">{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   DATA LAYER — section meta, question bank, sets
+   (Seed content. Marked EXPANDABLE: add objects to any pool
+    and the engine will sample them automatically.)
+   ============================================================ */
+const SECTION_META = {
+  grammar: { label: "Grammar", icon: "book", weight: 0.22 },
+  vocab:   { label: "Vocabulary", icon: "sparkles", weight: 0.18 },
+  reading: { label: "Reading", icon: "list", weight: 0.22 },
+  sjt:     { label: "Situational Judgment", icon: "target", weight: 0.18 },
+  email:   { label: "Email Writing", icon: "mail", weight: 0.20 },
+  chat:    { label: "Chat Handling", icon: "chat", weight: 0 }, // module-only
+  typing:  { label: "Typing Speed", icon: "keyboard", weight: 0 }, // module-only
+};
+
+// ---- Grammar pool (diff 1=basic, 2=intermediate, 3=advanced) ---- EXPANDABLE
+const GRAMMAR = [
+  { id: "g1", diff: 1, q: "She ___ to the office every day.", options: ["go", "goes", "going", "gone"], answer: 1, explain: "Third-person singular present takes '-s': she goes." },
+  { id: "g2", diff: 1, q: "I have been working here ___ 2019.", options: ["since", "for", "from", "at"], answer: 0, explain: "'Since' is used with a specific point in time (2019); 'for' is for durations." },
+  { id: "g3", diff: 1, q: "There ___ several customers waiting in the queue.", options: ["is", "are", "was", "be"], answer: 1, explain: "'Several customers' is plural, so use 'are'." },
+  { id: "g4", diff: 1, q: "He is ___ honest agent.", options: ["a", "an", "the", "(no article)"], answer: 1, explain: "'Honest' begins with a silent 'h' (vowel sound), so use 'an'." },
+  { id: "g5", diff: 1, q: "We ___ not received your payment yet.", options: ["have", "has", "are", "do"], answer: 0, explain: "'We' takes 'have' in the present perfect: have not received." },
+  { id: "g6", diff: 1, q: "Please ___ me know if you need anything else.", options: ["let", "lets", "letting", "to let"], answer: 0, explain: "After 'please', use the base verb: please let me know." },
+  { id: "g7", diff: 2, q: "If the customer ___ angry, stay calm and listen.", options: ["is", "are", "be", "being"], answer: 0, explain: "'The customer' is singular: if the customer is angry." },
+  { id: "g8", diff: 2, q: "Neither the agent nor the managers ___ available right now.", options: ["is", "are", "was", "be"], answer: 1, explain: "With 'neither…nor', the verb agrees with the nearer subject ('managers', plural) → are." },
+  { id: "g9", diff: 2, q: "Please ensure the report ___ submitted by end of day.", options: ["is", "are", "be", "been"], answer: 0, explain: "'The report' is singular: ensure the report is submitted." },
+  { id: "g10", diff: 2, q: "I'll get back ___ you shortly.", options: ["to", "with", "at", "on"], answer: 0, explain: "The fixed phrase is 'get back to (someone)'." },
+  { id: "g11", diff: 2, q: "He said he ___ call back within an hour.", options: ["will", "would", "shall", "can"], answer: 1, explain: "In reported speech, 'will' shifts to 'would'." },
+  { id: "g12", diff: 2, q: "The team ___ working hard to meet the deadline.", options: ["is", "are", "were", "be"], answer: 0, explain: "Treated as a single unit, the collective noun 'team' takes 'is'." },
+  { id: "g13", diff: 3, q: "Hardly ___ the call ended when another came in.", options: ["had", "has", "did", "was"], answer: 0, explain: "Inversion after 'hardly': Hardly had + past participle (ended)." },
+  { id: "g14", diff: 3, q: "I wish I ___ more time to resolve this for you.", options: ["have", "had", "has", "having"], answer: 1, explain: "After 'I wish', use the past subjunctive 'had' for a present unreal situation." },
+  { id: "g15", diff: 3, q: "The escalation, along with the related complaints, ___ been reviewed.", options: ["have", "has", "were", "are"], answer: 1, explain: "The subject is singular ('the escalation'); 'along with…' doesn't change the verb → has." },
+  { id: "g16", diff: 3, q: "Which sentence is punctuated correctly?", options: ["Thank you for your patience; your issue has been resolved.", "Thank you for your patience, your issue has been resolved.", "Thank you for your patience your issue has been resolved.", "Thank you, for your patience your issue, has been resolved."], answer: 0, explain: "A semicolon correctly joins two independent clauses." },
+];
+
+// ---- Vocabulary pool ---- EXPANDABLE
+const VOCAB = [
+  { id: "v1", diff: 1, q: "Choose the closest synonym for 'assist'.", options: ["help", "ignore", "delay", "refuse"], answer: 0, explain: "'Assist' means to help." },
+  { id: "v2", diff: 1, q: "Choose the closest synonym for 'resolve'.", options: ["solve", "create", "cause", "ignore"], answer: 0, explain: "To 'resolve' an issue means to solve it." },
+  { id: "v3", diff: 1, q: "Choose the opposite of 'satisfied'.", options: ["pleased", "content", "dissatisfied", "happy"], answer: 2, explain: "'Dissatisfied' is the antonym of 'satisfied'." },
+  { id: "v4", diff: 1, q: "Choose the closest synonym for 'refund'.", options: ["repayment", "charge", "fee", "bill"], answer: 0, explain: "A 'refund' is a repayment of money." },
+  { id: "v5", diff: 1, q: "Choose the opposite of 'increase'.", options: ["decrease", "raise", "grow", "expand"], answer: 0, explain: "'Decrease' is the antonym of 'increase'." },
+  { id: "v6", diff: 2, q: "We apologize for the ___ caused.", options: ["inconvenience", "convenience", "conscience", "consequence"], answer: 0, explain: "The standard service phrase is 'apologize for the inconvenience caused'." },
+  { id: "v7", diff: 2, q: "Your request has been ___ to our billing team for review.", options: ["escalated", "escaped", "escalator", "elevator"], answer: 0, explain: "To 'escalate' is to forward an issue to a higher level." },
+  { id: "v8", diff: 2, q: "Choose the closest synonym for 'prompt'.", options: ["quick", "slow", "late", "rude"], answer: 0, explain: "'Prompt' means quick or on time." },
+  { id: "v9", diff: 2, q: "Please ___ your account before we proceed.", options: ["verify", "very", "vary", "vertify"], answer: 0, explain: "'Verify' means to confirm; 'vertify' is not a word." },
+  { id: "v10", diff: 2, q: "Choose the more formal/professional option.", options: ["I want to help you with this.", "I wanna help ya.", "Lemme sort this out.", "I'm gonna fix it."], answer: 0, explain: "Professional writing avoids slang and contractions like 'wanna' and 'gonna'." },
+  { id: "v11", diff: 2, q: "Please confirm the ___ of delivery.", options: ["date", "data", "dates", "dated"], answer: 0, explain: "Singular 'date' fits the context; don't confuse with 'data'." },
+  { id: "v12", diff: 3, q: "This pricing is non-___; no exceptions can be made.", options: ["negotiable", "navigable", "negligible", "notable"], answer: 0, explain: "'Non-negotiable' means not open to discussion." },
+  { id: "v13", diff: 3, q: "Choose the closest meaning of 'discrepancy'.", options: ["difference", "agreement", "discount", "payment"], answer: 0, explain: "A 'discrepancy' is a difference or inconsistency." },
+  { id: "v14", diff: 3, q: "We continuously strive to exceed customer ___.", options: ["expectations", "exceptions", "extensions", "expenses"], answer: 0, explain: "'Exceed customer expectations' is the correct collocation." },
+];
+
+// ---- Reading passages (each has sub-questions) ---- EXPANDABLE
+const READING = [
+  {
+    id: "r1", diff: 1, title: "Billing Notice",
+    passage: "Dear Mr. Lopez, Thank you for being a valued customer. This is a reminder that your invoice #4582 of $74.50 is due on the 15th of this month. You can pay online through your account dashboard or by calling our billing line. If payment is not received by the due date, a late fee of $5 may apply. We appreciate your prompt attention to this matter.",
+    subs: [
+      { q: "How much is the invoice?", options: ["$74.50", "$45.82", "$5.00", "$15.00"], answer: 0, explain: "The passage states invoice #4582 of $74.50." },
+      { q: "What happens if payment is late?", options: ["The account is closed", "A $5 late fee may apply", "Service is upgraded", "Nothing happens"], answer: 1, explain: "It says a late fee of $5 may apply." },
+      { q: "How can the customer pay? ", options: ["Only by mail", "Online or by phone", "Only in person", "By email only"], answer: 1, explain: "Payment is possible online or by calling the billing line." },
+    ],
+  },
+  {
+    id: "r2", diff: 2, title: "Return Policy Update",
+    passage: "Effective July 1, our return policy will change. Customers may return unused items within 30 days of purchase for a full refund, provided the original receipt is presented. Items marked 'final sale' are not eligible for return. Refunds are processed to the original payment method within 5–7 business days. Exchanges are available in-store only and do not require the original packaging, though the item must be in resalable condition.",
+    subs: [
+      { q: "What is the return window for unused items?", options: ["7 days", "14 days", "30 days", "60 days"], answer: 2, explain: "Customers may return unused items within 30 days." },
+      { q: "Which items cannot be returned?", options: ["Unused items", "Items with a receipt", "'Final sale' items", "Exchanged items"], answer: 2, explain: "Items marked 'final sale' are not eligible for return." },
+      { q: "How long do refunds take?", options: ["Immediately", "1–2 days", "5–7 business days", "30 days"], answer: 2, explain: "Refunds are processed within 5–7 business days." },
+    ],
+  },
+  {
+    id: "r3", diff: 3, title: "Service Level Report",
+    passage: "In Q2, the support center handled 18,240 contacts across voice, chat, and email channels. Average handle time (AHT) for voice rose to 7m 12s, up 9% quarter-over-quarter, largely due to a complex billing migration. Despite this, first-contact resolution (FCR) improved to 81%, and customer satisfaction (CSAT) held steady at 4.4 of 5. The report recommends additional knowledge-base articles to reduce repeat contacts, which accounted for 14% of total volume.",
+    subs: [
+      { q: "What likely caused the rise in average handle time?", options: ["A staff shortage", "A complex billing migration", "A holiday season", "A new phone system"], answer: 1, explain: "The text attributes the AHT rise largely to a complex billing migration." },
+      { q: "What does the report recommend to reduce repeat contacts?", options: ["Hiring more agents", "Longer calls", "More knowledge-base articles", "Closing the chat channel"], answer: 2, explain: "It recommends additional knowledge-base articles." },
+      { q: "Which statement is best supported by the report?", options: ["CSAT dropped sharply", "FCR improved despite higher AHT", "Email was the top channel", "Repeat contacts were 40%"], answer: 1, explain: "FCR improved to 81% even though AHT increased — the best-supported inference." },
+    ],
+  },
+];
+
+// ---- Situational Judgment pool (option scores 0–100) ---- EXPANDABLE
+const SJT = [
+  { id: "s1", diff: 1, q: "A customer is angry about a late delivery. What is your best first response?", options: [
+    { text: "Sincerely apologize and acknowledge the frustration before acting.", score: 100 },
+    { text: "Explain that the delay is not your department's fault.", score: 35 },
+    { text: "Transfer the call to another team immediately.", score: 25 },
+    { text: "Ask the customer to calm down first.", score: 15 } ], best: 0,
+    explain: "Acknowledging emotion and apologizing first de-escalates and builds rapport before problem-solving." },
+  { id: "s2", diff: 2, q: "You don't know the answer to a technical question. What should you do?", options: [
+    { text: "Place the customer on a brief hold, check with a senior, and update them.", score: 100 },
+    { text: "Give your best guess so you sound confident.", score: 10 },
+    { text: "Make up a plausible answer.", score: 0 },
+    { text: "Tell them to call back later.", score: 35 } ], best: 0,
+    explain: "Never guess on technical matters — verify and keep the customer informed." },
+  { id: "s3", diff: 2, q: "A customer requests a refund that falls outside policy. Best action?", options: [
+    { text: "Empathize, explain the policy clearly, offer alternatives, and escalate if needed.", score: 100 },
+    { text: "Issue the refund anyway to avoid conflict.", score: 30 },
+    { text: "Flatly refuse and end the conversation.", score: 20 },
+    { text: "Ignore the request.", score: 0 } ], best: 0,
+    explain: "Balance policy with empathy: explain, offer options, and escalate appropriately." },
+  { id: "s4", diff: 1, q: "Your call is approaching the target handle time. What is best?", options: [
+    { text: "Stay focused, resolve efficiently, and set clear expectations.", score: 100 },
+    { text: "Rush the customer and end abruptly.", score: 20 },
+    { text: "Disconnect to protect your metrics.", score: 0 },
+    { text: "Keep chatting casually to be friendly.", score: 15 } ], best: 0,
+    explain: "Efficiency shouldn't sacrifice resolution; manage time while serving the customer." },
+  { id: "s5", diff: 3, q: "Two issues arrive at once: a system outage (urgent) and a minor inquiry. What do you do?", options: [
+    { text: "Prioritize the urgent outage and inform the other customer of the wait.", score: 100 },
+    { text: "Handle the minor inquiry first because it's quicker.", score: 25 },
+    { text: "Pick one at random.", score: 10 },
+    { text: "Escalate both without assessing.", score: 40 } ], best: 0,
+    explain: "Triage by impact and urgency, and communicate wait times transparently." },
+  { id: "s6", diff: 2, q: "A customer uses abusive language. Best professional response?", options: [
+    { text: "Stay calm, set a polite boundary, and follow company policy.", score: 100 },
+    { text: "Respond rudely to match their tone.", score: 0 },
+    { text: "Hang up instantly without warning.", score: 30 },
+    { text: "Argue to defend yourself.", score: 10 } ], best: 0,
+    explain: "Remain professional and use the company's stated process for abusive behavior." },
+  { id: "s7", diff: 1, q: "You're wrapping up a call. What's the best closing?", options: [
+    { text: "Recap the resolution, ask if there's anything else, and thank them.", score: 100 },
+    { text: "Just say 'bye' and hang up.", score: 50 },
+    { text: "Hang up quickly to take the next call.", score: 20 },
+    { text: "Transfer them to a survey without explanation.", score: 25 } ], best: 0,
+    explain: "A proper close confirms resolution and leaves a positive final impression." },
+  { id: "s8", diff: 3, q: "A caller claiming to be the account holder's spouse asks for account details. Best action?", options: [
+    { text: "Politely decline and explain the identity-verification policy.", score: 100 },
+    { text: "Share the information to be helpful.", score: 0 },
+    { text: "Share only partial details.", score: 20 },
+    { text: "Let them guess the password.", score: 0 } ], best: 0,
+    explain: "Protect data privacy — only release information to a verified account holder." },
+  { id: "s9", diff: 2, q: "You realize you made an error on a customer's order. What's best?", options: [
+    { text: "Take ownership, apologize, and fix it promptly.", score: 100 },
+    { text: "Blame the system.", score: 20 },
+    { text: "Hide the mistake and hope it's unnoticed.", score: 0 },
+    { text: "Wait for the customer to complain.", score: 10 } ], best: 0,
+    explain: "Accountability and a swift fix build trust and protect the relationship." },
+];
+
+// ---- Email writing prompts (heuristic-scored) ---- EXPANDABLE
+const EMAILS = [
+  { id: "e1", diff: 2, prompt: "Write a reply to a customer apologizing for a delayed delivery and offering a 10% discount on their next order.", minWords: 45,
+    keywords: ["apolog", "delay", "discount", "10", "next", "sorry", "resolve"], explain: "Strong replies open with an apology, acknowledge the delay, clearly state the 10% discount, and close courteously." },
+  { id: "e2", diff: 2, prompt: "A customer has requested a refund that is within policy. Write an email confirming the refund and explaining the 5–7 business day timeline.", minWords: 45,
+    keywords: ["refund", "confirm", "business day", "5", "7", "apolog", "process"], explain: "Confirm the refund, state the 5–7 business day timeline, and reassure the customer." },
+  { id: "e3", diff: 3, prompt: "Write a de-escalation email to an angry customer whose issue was unresolved after two previous contacts.", minWords: 55,
+    keywords: ["apolog", "understand", "escalat", "priorit", "resolve", "personally", "follow"], explain: "Acknowledge the repeated failures, apologize sincerely, take personal ownership, and commit to a prioritized resolution." },
+  { id: "e4", diff: 1, prompt: "Acknowledge receipt of a customer complaint and set the expectation that you will follow up within 24 hours.", minWords: 35,
+    keywords: ["received", "complaint", "24", "hour", "follow", "thank"], explain: "Confirm receipt, thank them, and commit to a 24-hour follow-up." },
+  { id: "e5", diff: 2, prompt: "Write an email explaining a temporary service outage and the expected restoration time of 3 hours.", minWords: 45,
+    keywords: ["outage", "apolog", "restore", "3", "hour", "update", "inconvenience"], explain: "Explain the outage clearly, apologize, give the 3-hour estimate, and promise updates." },
+  { id: "e6", diff: 3, prompt: "Write a win-back email to a customer who has asked to cancel their subscription.", minWords: 55,
+    keywords: ["understand", "value", "offer", "stay", "feedback", "sorry", "help"], explain: "Acknowledge their decision respectfully, express your value of them, invite feedback, and offer a retention incentive." },
+];
+
+// ---- Typing test passages ---- EXPANDABLE
+const TYPING_PASSAGES = [
+  "Thank you for contacting our support team today. I understand how important this issue is to you, and I want to assure you that I will do everything I can to resolve it quickly. Please allow me a moment to review your account details.",
+  "Our goal is to provide fast, friendly, and accurate service on every interaction. When a customer reaches out, we listen carefully, confirm the details, and offer a clear solution. A positive experience turns a one-time caller into a loyal customer.",
+  "I sincerely apologize for the inconvenience this has caused. Your time is valuable, and we should have resolved this on your first contact. I have escalated your case to our specialist team, and you will receive an update within twenty-four hours.",
+  "Please verify your account by confirming the email address and the last four digits of your registered phone number. Once your identity is confirmed, I can review the recent transactions and process the adjustment you requested today.",
+  "Effective communication is the foundation of excellent customer service. Speak clearly, use simple language, and confirm understanding before moving forward. A calm and professional tone reassures the customer that they are in capable hands.",
+];
+
+// ---- Chat simulator scenarios ---- EXPANDABLE
+const CHAT_SCENARIOS = [
+  { id: "c1", persona: "Frustrated Customer", difficulty: "Intermediate",
+    title: "Late Delivery Complaint",
+    brief: "The customer ordered a package 8 days ago with 2-day shipping. It still hasn't arrived. They are frustrated but reasonable if handled well.",
+    opening: "This is ridiculous. I paid for 2-day shipping over a week ago and my order is STILL not here. What is going on?!",
+    goal: ["apologize", "acknowledge", "investigate / track", "offer a remedy (refund of shipping or discount)", "set a clear next step"],
+    keywords: { empathy: ["sorry", "apolog", "understand", "frustrat"], action: ["track", "check", "refund", "discount", "escalat", "expedite"], close: ["update", "follow", "ensure", "resolve"] } },
+  { id: "c2", persona: "Confused New User", difficulty: "Foundation",
+    title: "Can't Log In",
+    brief: "A polite but confused customer can't log into their new account. Likely a password/reset issue. Patience and clear steps win.",
+    opening: "Hi, I just signed up but it won't let me log in. I'm not very good with computers, sorry. Can you help?",
+    goal: ["reassure", "ask for the email / verify", "guide a password reset", "confirm access restored"],
+    keywords: { empathy: ["happy", "glad", "no problem", "of course", "help"], action: ["reset", "email", "link", "verify", "password"], close: ["confirm", "able to", "anything else", "great"] } },
+  { id: "c3", persona: "Demanding Premium Client", difficulty: "Advanced",
+    title: "Billing Overcharge Dispute",
+    brief: "A high-value client was charged twice. They are firm and expect efficiency and accountability, not excuses.",
+    opening: "I've been charged twice this month and I expect this fixed immediately. I'm a premium customer and frankly this shouldn't happen.",
+    goal: ["apologize", "take ownership", "verify the duplicate charge", "commit to a refund with timeline", "offer goodwill"],
+    keywords: { empathy: ["apolog", "sorry", "understand", "valued"], action: ["refund", "verify", "review", "reverse", "process", "escalat"], close: ["timeline", "business day", "confirm", "ensure", "follow"] } },
+  { id: "c4", persona: "Cancellation Risk", difficulty: "Advanced",
+    title: "Wants to Cancel Subscription",
+    brief: "The customer is unhappy with value and wants to cancel. A retention opportunity if you uncover the real reason and respond.",
+    opening: "I want to cancel my subscription. I just don't think I'm getting my money's worth anymore.",
+    goal: ["acknowledge respectfully", "ask why / uncover reason", "address the concern", "offer value or incentive", "respect their decision either way"],
+    keywords: { empathy: ["understand", "sorry", "value", "feedback"], action: ["offer", "discount", "feature", "plan", "help"], close: ["stay", "keep", "decision", "respect", "anything"] } },
+];
+
+// ---- 30 Practice Sets across 3 phases (hard / harder / hardest) ----
+const TIERS = {
+  1: { name: "Foundation", color: "emerald", desc: "Phase 1 · Hard — core grammar, vocabulary & comprehension", minutes: 50 },
+  2: { name: "Proficiency", color: "sky", desc: "Phase 2 · Harder — advanced usage, inference & judgment", minutes: 60 },
+  3: { name: "Mastery", color: "indigo", desc: "Phase 3 · Hardest — SSC / Versant-Pro level rigor", minutes: 75 },
+};
+
+/* ============================================================
+   GENERATOR BANK — compact seeds expanded into many unique items.
+   Each generated item: { q, options[], answer, explain, diff(1-3) }.
+   The correct answer is randomized across A–D at exam-build time.
+   EXPANDABLE: add rows to any seed list to grow the pool.
+   ============================================================ */
+// Vocabulary dictionary: [word, meaning, synonym, antonym, diff]
+const WORDS = [
+  ["abate", "to lessen or reduce", "diminish", "intensify", 2], ["candid", "frank and honest", "forthright", "evasive", 2],
+  ["lucid", "clear and easy to understand", "coherent", "obscure", 2], ["prudent", "acting with care", "judicious", "reckless", 2],
+  ["benevolent", "kind and generous", "magnanimous", "cruel", 2], ["frugal", "careful with money", "thrifty", "wasteful", 2],
+  ["verbose", "using too many words", "long-winded", "concise", 3], ["mitigate", "to make less severe", "alleviate", "aggravate", 3],
+  ["augment", "to increase", "amplify", "reduce", 3], ["reticent", "reserved, not revealing thoughts", "taciturn", "talkative", 3],
+  ["tenacious", "holding firmly, persistent", "dogged", "yielding", 3], ["ambiguous", "open to more than one meaning", "equivocal", "explicit", 3],
+  ["diligent", "hard-working", "industrious", "lazy", 2], ["arduous", "difficult and tiring", "strenuous", "effortless", 2],
+  ["placate", "to soothe or pacify", "appease", "provoke", 3], ["scrutinize", "to examine closely", "inspect", "overlook", 2],
+  ["spontaneous", "done without planning", "impromptu", "premeditated", 3], ["meticulous", "very careful about detail", "fastidious", "careless", 3],
+  ["transient", "lasting a short time", "fleeting", "permanent", 3], ["cordial", "warm and friendly", "genial", "hostile", 1],
+  ["deter", "to discourage", "dissuade", "encourage", 2], ["vivid", "bright and clear", "vibrant", "dull", 1],
+  ["abundant", "present in great quantity", "ample", "scarce", 1], ["rigid", "stiff, not flexible", "inflexible", "pliable", 1],
+  ["hasten", "to hurry", "accelerate", "delay", 1], ["humble", "modest", "unassuming", "arrogant", 1],
+  ["genuine", "real, authentic", "authentic", "counterfeit", 1], ["trivial", "of little importance", "petty", "significant", 2],
+  ["hostile", "unfriendly", "antagonistic", "amicable", 2], ["conceal", "to hide", "cover", "reveal", 1],
+  ["vague", "not clearly expressed", "hazy", "definite", 2], ["prosper", "to thrive", "flourish", "decline", 2],
+  ["reluctant", "unwilling", "hesitant", "eager", 2], ["eloquent", "fluent and persuasive", "articulate", "inarticulate", 3],
+  ["obstinate", "stubborn", "headstrong", "compliant", 3], ["lethargic", "lacking energy", "sluggish", "energetic", 3],
+];
+const _words = WORDS.map((w) => w[0]); const _means = WORDS.map((w) => w[1]);
+function genVocab() {
+  const out = [];
+  WORDS.forEach(([w, mean, syn, ant, diff]) => {
+    out.push({ q: `Select the word most SIMILAR in meaning to “${w}”.`, options: [syn, ...sample(_words.filter((x) => x !== w && x !== syn), 3)], answer: 0, explain: `“${w}” means ${mean}; the closest synonym is “${syn}”.`, diff });
+    if (ant) out.push({ q: `Select the word most OPPOSITE in meaning to “${w}”.`, options: [ant, ...sample(_words.filter((x) => x !== w && x !== ant), 3)], answer: 0, explain: `“${w}” means ${mean}; its antonym is “${ant}”.`, diff });
+    out.push({ q: `What does “${w}” most nearly mean?`, options: [mean, ...sample(_means.filter((m) => m !== mean), 3)], answer: 0, explain: `“${w}” means ${mean}.`, diff });
+  });
+  return out;
+}
+// Idioms: [idiom, meaning, diff]
+const IDIOMS = [
+  ["a blessing in disguise", "a good thing that seemed bad at first", 2], ["once in a blue moon", "very rarely", 1],
+  ["bite the bullet", "to endure a painful situation bravely", 2], ["the ball is in your court", "it is your decision now", 2],
+  ["hit the nail on the head", "to describe exactly what is causing a situation", 2], ["let the cat out of the bag", "to reveal a secret carelessly", 2],
+  ["burn the midnight oil", "to work late into the night", 2], ["a piece of cake", "something very easy", 1],
+  ["cut corners", "to do something cheaply or poorly to save effort", 2], ["under the weather", "feeling slightly ill", 1],
+  ["cost an arm and a leg", "to be very expensive", 2], ["beat around the bush", "to avoid talking about the main point", 2],
+  ["on the same page", "to be in agreement", 1], ["throw in the towel", "to give up", 2], ["a hard nut to crack", "a difficult problem or person", 3],
+];
+const _idiomMeans = IDIOMS.map((x) => x[1]);
+function genIdiom() { return IDIOMS.map(([id, mean, diff]) => ({ q: `What does the idiom “${id}” mean?`, options: [mean, ...sample(_idiomMeans.filter((m) => m !== mean), 3)], answer: 0, explain: `“${id}” means: ${mean}.`, diff })); }
+// Spelling: [correct, [wrong1,wrong2,wrong3], diff]
+const SPELL = [
+  ["accommodate", ["acommodate", "accomodate", "acomodate"], 2], ["definitely", ["definately", "definatly", "defenitely"], 1],
+  ["separate", ["seperate", "seperete", "saparate"], 1], ["occurrence", ["occurence", "ocurrence", "occurrance"], 3],
+  ["embarrass", ["embarass", "embaras", "embarras"], 2], ["privilege", ["priviledge", "privilage", "privelege"], 2],
+  ["maintenance", ["maintainance", "maintenence", "maintanance"], 2], ["recommend", ["reccomend", "recomend", "reccommend"], 1],
+  ["necessary", ["neccessary", "necesary", "neccesary"], 1], ["conscientious", ["consciencious", "conscientous", "conscienscious"], 3],
+  ["liaison", ["liason", "liaision", "liasion"], 3], ["rhythm", ["rythm", "rhythem", "rhytm"], 2],
+];
+function genSpell() { return SPELL.map(([c, w, diff]) => ({ q: "Choose the CORRECTLY spelled word.", options: [c, ...w], answer: 0, explain: `The correct spelling is “${c}”.`, diff })); }
+// Analogies: [q, [4 options], answerIdx, explain, diff]
+const ANALOGY = [
+  ["Doctor : Hospital :: Teacher : ?", ["School", "Court", "Garage", "Studio"], 0, "A doctor works in a hospital; a teacher works in a school.", 1],
+  ["Pen : Write :: Knife : ?", ["Cut", "Read", "Cook", "Paint"], 0, "Tool and its function.", 1],
+  ["Cub : Bear :: Calf : ?", ["Cow", "Dog", "Cat", "Goat"], 0, "Young one to adult animal.", 2],
+  ["Author : Book :: Composer : ?", ["Symphony", "Stage", "Brush", "Script"], 0, "Creator to creation.", 2],
+  ["Ocean : Drop :: Crowd : ?", ["Person", "Group", "Team", "Mob"], 0, "Whole to a single unit.", 3],
+  ["Glove : Hand :: Sock : ?", ["Foot", "Arm", "Head", "Knee"], 0, "Garment to body part.", 1],
+  ["Clock : Time :: Thermometer : ?", ["Temperature", "Speed", "Weight", "Pressure"], 0, "Instrument to what it measures.", 2],
+  ["Petal : Flower :: Spoke : ?", ["Wheel", "Car", "Road", "Chain"], 0, "Part to whole.", 2],
+  ["Sculptor : Statue :: Poet : ?", ["Poem", "Song", "Story", "Play"], 0, "Creator to creation.", 2],
+  ["Light : Blind :: Sound : ?", ["Deaf", "Mute", "Numb", "Dumb"], 0, "Sense whose loss is named.", 3],
+  ["Water : Thirst :: Food : ?", ["Hunger", "Drink", "Sleep", "Rest"], 0, "Remedy to need.", 1],
+  ["Teacher : Pupil :: Master : ?", ["Servant", "Owner", "King", "Guest"], 0, "Hierarchical pair.", 2],
+];
+function genAnalogy() { return ANALOGY.map(([q, o, a, ex, diff]) => ({ q: `Complete the analogy — ${q}`, options: o, answer: a, explain: ex, diff })); }
+// Fill in the blank (grammar): [sentence, correct, [d1,d2,d3], explain, diff]
+const FILL = [
+  ["She is good ___ mathematics.", "at", ["in", "on", "with"], "‘good at’ is the correct collocation.", 1],
+  ["He has lived here ___ ten years.", "for", ["since", "from", "by"], "‘for’ + a duration of time.", 1],
+  ["The report must be submitted ___ Friday.", "by", ["till", "until", "in"], "‘by’ = no later than a point in time.", 2],
+  ["Neither of the boys ___ present.", "was", ["were", "are", "have"], "‘Neither of’ takes a singular verb.", 3],
+  ["If I ___ you, I would apologize.", "were", ["was", "am", "be"], "Subjunctive mood: ‘If I were you’.", 3],
+  ["She insisted ___ paying the bill.", "on", ["in", "at", "for"], "‘insist on’ + gerund.", 2],
+  ["He is senior ___ me by two years.", "to", ["than", "from", "over"], "‘senior to’, never ‘senior than’.", 3],
+  ["I look forward ___ hearing from you.", "to", ["for", "at", "in"], "‘look forward to’ + gerund.", 2],
+  ["Hardly had he left ___ it started to rain.", "when", ["than", "then", "that"], "Correlative: ‘Hardly … when’.", 3],
+  ["She apologized ___ being late.", "for", ["of", "on", "to"], "‘apologize for’.", 1],
+  ["This is the book ___ I told you about.", "that", ["who", "whom", "what"], "Relative pronoun for a thing.", 2],
+  ["He prefers tea ___ coffee.", "to", ["than", "over", "from"], "‘prefer X to Y’.", 2],
+  ["Each of the students ___ a locker.", "has", ["have", "are", "were"], "‘Each’ is singular → ‘has’.", 3],
+  ["The news ___ very encouraging.", "is", ["are", "were", "have"], "‘news’ is an uncountable singular noun.", 2],
+  ["She is married ___ a doctor.", "to", ["with", "by", "for"], "‘married to’.", 2],
+  ["There is no point ___ arguing.", "in", ["of", "at", "for"], "‘no point in’ + gerund.", 3],
+  ["He is capable ___ doing it alone.", "of", ["to", "for", "in"], "‘capable of’.", 2],
+  ["The child is afraid ___ the dark.", "of", ["from", "with", "at"], "‘afraid of’.", 1],
+  ["Please refrain ___ smoking here.", "from", ["of", "to", "in"], "‘refrain from’.", 2],
+  ["We must abide ___ the rules.", "by", ["with", "to", "on"], "‘abide by’.", 3],
+  ["He was accused ___ theft.", "of", ["for", "with", "on"], "‘accused of’.", 2],
+  ["I congratulated her ___ her success.", "on", ["for", "at", "with"], "‘congratulate on’.", 2],
+  ["She is fond ___ classical music.", "of", ["for", "with", "to"], "‘fond of’.", 1],
+  ["The meeting was put ___ till Monday.", "off", ["on", "up", "out"], "‘put off’ = postpone.", 2],
+  ["He gave ___ smoking last year.", "up", ["off", "in", "out"], "‘give up’ = quit.", 2],
+  ["They have been friends ___ childhood.", "since", ["for", "from", "by"], "‘since’ + a point in time.", 1],
+  ["I am not used ___ waking up early.", "to", ["with", "for", "of"], "‘used to’ (accustomed) + gerund.", 3],
+  ["He succeeded ___ getting the contract.", "in", ["to", "at", "for"], "‘succeed in’ + gerund.", 2],
+];
+function genFill() { return FILL.map(([s, c, d, ex, diff]) => ({ q: `Fill in the blank: ${s}`, options: [c, ...d], answer: 0, explain: ex, diff })); }
+// Error spotting (SSC style): [[partA,partB,partC,partD], errIdx, explain, diff]
+const ERRORS = [
+  [["One of my friend", "is a doctor", "who lives", "in Mumbai."], 0, "‘One of my friends’ — plural noun after ‘one of’.", 2],
+  [["He is more intelligent", "than any boy", "in the", "class."], 1, "Use ‘any other boy’ when comparing within the same group.", 3],
+  [["The teacher as well as", "the students", "were present", "in the hall."], 2, "Subject ‘teacher’ is singular → ‘was present’.", 3],
+  [["I have been", "living here", "since five years", "now."], 2, "‘since’ → ‘for’ with a duration.", 2],
+  [["Each of the players", "have been given", "a separate", "jersey."], 1, "‘Each’ is singular → ‘has been given’.", 2],
+  [["He did not", "came to", "the office", "yesterday."], 1, "After ‘did not’, use the base verb ‘come’.", 1],
+  [["She is junior", "than me", "by three", "years."], 1, "‘junior to’, not ‘junior than’.", 2],
+  [["The quality", "of these mangoes", "are not", "good."], 2, "Subject ‘quality’ is singular → ‘is not’.", 2],
+  [["He prefers", "tea than coffee", "in the", "morning."], 1, "‘prefer X to Y’, not ‘than’.", 2],
+  [["Neither he", "nor his friends", "was able", "to solve it."], 2, "Verb agrees with the nearer subject ‘friends’ → ‘were’.", 3],
+  [["I am looking", "forward to", "meet you", "next week."], 2, "‘looking forward to meeting’ — gerund.", 2],
+  [["He is one", "of the best", "player", "in the team."], 2, "‘one of the best players’ — plural.", 2],
+  [["The number", "of students", "are increasing", "every year."], 2, "‘The number … is increasing’.", 3],
+  [["Hardly I had", "reached the station", "when the", "train left."], 0, "Inversion: ‘Hardly had I reached’.", 3],
+];
+function genError() { return ERRORS.map(([parts, idx, ex, diff]) => ({ q: "Identify the part that contains a grammatical error:", options: parts.map((p, i) => `(${String.fromCharCode(65 + i)}) ${p}`), answer: idx, explain: ex, diff })); }
+// Sentence improvement: [stem, [4 versions], answerIdx, explain, diff]
+const IMPROVE = [
+  ["He suggested to go for a walk.", ["He suggested going for a walk.", "He suggested to go for a walk.", "He suggested go for a walk.", "He suggested for going a walk."], 0, "‘suggest’ takes a gerund.", 2],
+  ["I look forward to meet you.", ["I look forward to meeting you.", "I look forward to meet you.", "I look forward meeting you.", "I look forward for meeting you."], 0, "‘look forward to’ + gerund.", 2],
+  ["He is the most cleverest boy.", ["He is the cleverest boy.", "He is the most cleverest boy.", "He is more cleverest boy.", "He is the much cleverest boy."], 0, "Avoid the double superlative.", 1],
+  ["The reason is because he was late.", ["The reason is that he was late.", "The reason is because he was late.", "The reason because he was late.", "The reason is why he was late."], 0, "‘The reason is that …’.", 3],
+  ["Each of the boys were given a prize.", ["Each of the boys was given a prize.", "Each of the boys were given a prize.", "Each of the boys have been given a prize.", "Each of the boy was given a prize."], 0, "‘Each’ → singular ‘was’.", 2],
+  ["He returned back home.", ["He returned home.", "He returned back home.", "He return back home.", "He returned back to home."], 0, "‘return’ already implies ‘back’.", 1],
+  ["I prefer coffee than tea.", ["I prefer coffee to tea.", "I prefer coffee than tea.", "I prefer coffee then tea.", "I prefer coffee over than tea."], 0, "‘prefer X to Y’.", 2],
+  ["Neither of the answers are correct.", ["Neither of the answers is correct.", "Neither of the answers are correct.", "Neither of the answer is correct.", "Neither of the answers were correct."], 0, "‘Neither’ → singular verb.", 3],
+  ["She did not went to school.", ["She did not go to school.", "She did not went to school.", "She does not went to school.", "She did not gone to school."], 0, "Base verb after ‘did’.", 1],
+  ["He insisted to pay the bill.", ["He insisted on paying the bill.", "He insisted to pay the bill.", "He insisted in paying the bill.", "He insisted for paying the bill."], 0, "‘insist on’ + gerund.", 2],
+  ["Less people came today.", ["Fewer people came today.", "Less people came today.", "Lesser people came today.", "Least people came today."], 0, "‘fewer’ for countable nouns.", 3],
+  ["He is married with a teacher.", ["He is married to a teacher.", "He is married with a teacher.", "He is marry to a teacher.", "He is married by a teacher."], 0, "‘married to’.", 2],
+];
+function genImprove() { return IMPROVE.map(([stem, o, a, ex, diff]) => ({ q: `Choose the best version — ${stem}`, options: o, answer: a, explain: ex, diff })); }
+
+const GEN_VOCAB = [...genVocab(), ...genIdiom(), ...genSpell(), ...genAnalogy()];
+const GEN_GRAMMAR = [...genFill(), ...genError(), ...genImprove()];
+// flatten reading passages into a sub-question pool
+const READING_SUBS = [];
+READING.forEach((p) => p.subs.forEach((sub) => READING_SUBS.push({ passageTitle: p.title, passage: p.passage, q: sub.q, options: sub.options, answer: sub.answer, explain: sub.explain, diff: p.diff })));
+// master pools per section (curated + generated)
+const SECTION_POOL = {
+  grammar: GRAMMAR.concat(GEN_GRAMMAR),
+  vocab: VOCAB.concat(GEN_VOCAB),
+  reading: READING_SUBS,
+  sjt: SJT,
+  email: EMAILS,
+};
+const BANK_TOTAL = Object.values(SECTION_POOL).reduce((s, a) => s + a.length, 0);
+
+const PAPER_TITLES = ["Grammar & Usage", "Vocabulary Power", "Reading & Inference", "Error Detection", "Sentence Mastery", "Idioms & Expressions", "Comprehension Drill", "Mixed English", "Rapid Round", "Phase Checkpoint"];
+const SETS = Array.from({ length: 30 }, (_, i) => {
+  const n = i + 1;
+  const phase = n <= 10 ? 1 : n <= 20 ? 2 : 3;
+  const within = ((n - 1) % 10) + 1;
+  const isCheckpoint = within === 10;
+  const title = PAPER_TITLES[within - 1];
+  return {
+    id: "set-" + n, n, tier: phase, diff: phase, isCheckpoint,
+    title: `${TIERS[phase].name} ${within} — ${title}`,
+    shortTitle: title,
+    minutes: TIERS[phase].minutes + (isCheckpoint ? 15 : 0),
+    blueprint: { grammar: 18, vocab: 20, reading: 5, sjt: 4, email: 3 }, totalQ: 50,
+  };
+});
+
+/* ============================================================
+   STORAGE LAYER — guarded localStorage (won't crash if blocked)
+   ============================================================ */
+const SKEYS = { settings: "bpo.settings.v1", results: "bpo.results.v1", active: "bpo.active.v1" };
+const storeOK = (() => { try { const k = "__bpo_t"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch (e) { return false; } })();
+function safeGet(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+}
+function safeSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } }
+const DEFAULT_SETTINGS = { candidate: "", apiKey: "", proxyUrl: "", model: "claude-sonnet-4-6", passMark: 70 };
+const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...safeGet(SKEYS.settings, {}) });
+const saveSettings = (s) => safeSet(SKEYS.settings, s);
+const loadResults = () => safeGet(SKEYS.results, []);
+const appendResult = (r) => { const all = loadResults(); all.push(r); safeSet(SKEYS.results, all); return all; };
+const clearResults = () => safeSet(SKEYS.results, []);
+const loadActive = () => safeGet(SKEYS.active, null);
+const saveActive = (a) => safeSet(SKEYS.active, a);
+const clearActive = () => { try { localStorage.removeItem(SKEYS.active); } catch (e) {} };
+
+/* ============================================================
+   EXAM BUILDER — samples a question set from the bank
+   ============================================================ */
+// deterministic shuffle so each paper is a stable, distinct set
+function seededShuffle(arr, seed) {
+  const a = [...arr]; let s = seed >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// move the correct option to a random A–D position (fixes "answer always A")
+function randomizeOptions(options, answerIdx) {
+  const order = shuffle(options.map((_, i) => i));
+  return { options: order.map((i) => options[i]), answer: order.indexOf(answerIdx) };
+}
+function randomizeSJT(options, bestIdx) {
+  const order = shuffle(options.map((_, i) => i));
+  return { options: order.map((i) => options[i]), best: order.indexOf(bestIdx) };
+}
+// pick an eligible difficulty band for a phase, broadening until we have enough
+function eligiblePool(pool, phase, need) {
+  const bands = phase === 1 ? [[1, 2], [1, 2, 3]] : phase === 2 ? [[2, 3], [1, 2, 3]] : [[3], [2, 3], [1, 2, 3]];
+  for (const b of bands) { const e = pool.filter((x) => b.includes(x.diff || 2)); if (e.length >= need) return e; }
+  return pool;
+}
+const _order = {};
+function windowPick(section, phase, withinIdx, count) {
+  const pool = SECTION_POOL[section] || [];
+  const elig = eligiblePool(pool, phase, count);
+  const key = section + "-" + phase + "-" + elig.length;
+  if (!_order[key]) _order[key] = seededShuffle(elig, 104729 + phase * 6151 + section.length * 131 + elig.length * 17);
+  const ord = _order[key], L = ord.length, out = [];
+  for (let i = 0; i < count && i < L; i++) out.push(ord[(withinIdx * count + i) % L]);
+  return out;
+}
+// Build a 50-question paper: per-paper unique, answer positions randomized,
+// difficulty escalating by phase. The 30 papers draw from disjoint windows.
+function buildExam(set) {
+  const items = [];
+  const within = (set.n - 1) % 10, phase = set.diff;
+  const bp = set.blueprint;
+  windowPick("grammar", phase, within, bp.grammar).forEach((g) => {
+    const r = randomizeOptions(g.options, g.answer);
+    items.push({ iid: uid(), section: "grammar", type: "mcq", q: g.q, options: r.options, answer: r.answer, explain: g.explain, level: g.diff || 2 });
+  });
+  windowPick("vocab", phase, within, bp.vocab).forEach((v) => {
+    const r = randomizeOptions(v.options, v.answer);
+    items.push({ iid: uid(), section: "vocab", type: "mcq", q: v.q, options: r.options, answer: r.answer, explain: v.explain, level: v.diff || 2 });
+  });
+  windowPick("reading", phase, within, bp.reading).forEach((sub) => {
+    const r = randomizeOptions(sub.options, sub.answer);
+    items.push({ iid: uid(), section: "reading", type: "mcq", passageTitle: sub.passageTitle, passage: sub.passage, q: sub.q, options: r.options, answer: r.answer, explain: sub.explain, level: sub.diff || 2 });
+  });
+  windowPick("sjt", phase, within, bp.sjt).forEach((s) => {
+    const r = randomizeSJT(s.options, s.best);
+    items.push({ iid: uid(), section: "sjt", type: "sjt", q: s.q, options: r.options, best: r.best, explain: s.explain, level: s.diff || 2 });
+  });
+  windowPick("email", phase, within, bp.email).forEach((e) => {
+    items.push({ iid: uid(), section: "email", type: "email", prompt: e.prompt, minWords: e.minWords, keywords: e.keywords, explain: e.explain, level: e.diff || 2 });
+  });
+  return items;
+}
+
+/* ============================================================
+   AI LAYER — swappable Claude API with offline fallback
+   ------------------------------------------------------------
+   • If a proxy URL or API key is saved in Settings, requests go
+     to the real Anthropic API (or your proxy).
+   • Otherwise, deterministic OFFLINE generators run so every
+     feature works with zero configuration and zero network.
+   ============================================================ */
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const aiEnabled = (s) => !!(s && (s.apiKey || s.proxyUrl));
+
+function extractText(data) {
+  if (!data) throw new Error("empty response");
+  if (typeof data.text === "string") return data.text;
+  if (Array.isArray(data.content)) return data.content.map((c) => c.text || "").join("").trim();
+  if (data.completion) return data.completion;
+  if (data.message && Array.isArray(data.message.content)) return data.message.content.map((c) => c.text || "").join("");
+  throw new Error("could not parse model response");
+}
+async function callClaude({ system, messages, settings, maxTokens = 512 }) {
+  const model = (settings && settings.model) || "claude-sonnet-4-6";
+  if (settings && settings.proxyUrl) {
+    const res = await fetch(settings.proxyUrl, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model, system, messages, max_tokens: maxTokens }),
+    });
+    if (!res.ok) throw new Error("proxy error " + res.status);
+    return extractText(await res.json());
+  }
+  if (settings && settings.apiKey) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": settings.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
+    });
+    if (!res.ok) throw new Error("API error " + res.status);
+    return extractText(await res.json());
+  }
+  throw new Error("offline");
+}
+
+/* ---- Offline generators (deterministic, no network) ---- */
+const DRILLS = {
+  grammar: ["Review subject–verb agreement and tense consistency; rewrite 5 customer sentences daily.", "Practice spotting the one wrong word in a sentence — error-correction drills build accuracy."],
+  vocab: ["Build a 'service vocabulary' list (escalate, verify, refund, discrepancy) and use each in a sentence.", "Learn 5 formal alternatives to casual words (e.g., 'want to' not 'wanna') each day."],
+  reading: ["Practice skimming for key facts (amounts, dates, policies), then answer without re-reading.", "After each passage, summarize it in one sentence to test comprehension."],
+  sjt: ["For each scenario, ask: did I acknowledge emotion, follow policy, and confirm next steps?", "Study the CARE model: Connect, Acknowledge, Resolve, End positively."],
+  email: ["Always include a greeting, a clear action/answer, a courteous tone, and a professional sign-off.", "Keep sentences short; lead with the resolution, then the details."],
+};
+function describeItem(item, userAns) {
+  if (item.type === "mcq") {
+    return `Question: ${item.q}\nOptions: ${item.options.map((o, i) => `${i + 1}) ${o}`).join("  ")}\nCorrect: ${item.options[item.answer]}\nStudent chose: ${userAns != null ? item.options[userAns] : "(none)"}`;
+  }
+  if (item.type === "sjt") {
+    return `Scenario: ${item.q}\nBest action: ${item.options[item.best].text}\nStudent chose: ${userAns != null ? item.options[userAns].text : "(none)"}`;
+  }
+  return `Email task: ${item.prompt}`;
+}
+function offlineExplain(item, userAns) {
+  if (item.type === "mcq") {
+    const correct = item.options[item.answer];
+    const right = userAns === item.answer;
+    const yours = userAns != null && item.options[userAns] != null ? item.options[userAns] : "(no answer)";
+    return `${right ? "✓ Correct." : "✗ Not quite."} The correct answer is “${correct}”.${right ? "" : ` You chose “${yours}”.`}\n\n${item.explain}`;
+  }
+  if (item.type === "sjt") {
+    const best = item.options[item.best].text;
+    const chosen = userAns != null ? item.options[userAns] : null;
+    return `Best response: “${best}”.${chosen ? ` Your choice scored ${chosen.score}/100.` : ""}\n\n${item.explain}`;
+  }
+  return item.explain || "";
+}
+function analyzeResult(result) {
+  const sorted = [...result.sections].sort((a, b) => a.score - b.score);
+  return { weak: sorted.filter((s) => s.score < 70), strong: sorted.filter((s) => s.score >= 85), lowest: sorted[0], highest: sorted[sorted.length - 1] };
+}
+function offlineCoach(result) {
+  const a = analyzeResult(result);
+  let out = `You scored ${result.overall}% overall — ${result.grade || gradeFromScore(result.overall)}.\n\n`;
+  if (a.strong.length) out += `Strengths: ${a.strong.map((s) => `${s.label} (${s.score}%)`).join(", ")}. Excellent work here.\n\n`;
+  if (a.weak.length) {
+    out += "Focus areas:\n";
+    a.weak.forEach((s) => { out += `• ${s.label} — ${s.score}%. ${(DRILLS[s.key] || ["Practice targeted exercises."])[0]}\n`; });
+  } else {
+    out += "No weak areas detected — consider attempting a higher tier to keep challenging yourself.\n";
+  }
+  if (a.lowest) out += `\nNext step: revisit the ${a.lowest.label} items in your review, then re-attempt to confirm improvement.`;
+  return out;
+}
+function detectHits(scenario, allUserText) {
+  const t = (allUserText || "").toLowerCase();
+  const k = scenario.keywords;
+  return { empathy: k.empathy.some((w) => t.includes(w)), action: k.action.some((w) => t.includes(w)), close: k.close.some((w) => t.includes(w)) };
+}
+function scenarioNudge(scenario) {
+  return pick([
+    "So… what can you do about this for me?",
+    "I just want this sorted out. Can you help or not?",
+    "Okay, I'm listening. What happens next?",
+  ]);
+}
+function offlineCustomerReply(scenario, history, userMsg) {
+  const allUser = history.filter((m) => m.role === "user").map((m) => m.text).concat(userMsg || "").join(" ");
+  const hits = detectHits(scenario, allUser);
+  const turn = history.filter((m) => m.role === "user").length + 1;
+  const score = (hits.empathy ? 34 : 0) + (hits.action ? 40 : 0) + (hits.close ? 26 : 0);
+  let reply, done = false;
+  if (hits.empathy && hits.action && (hits.close || turn >= 3)) {
+    reply = pick(["Okay, thank you — that makes me feel a lot better. I appreciate you sorting this out.", "Alright, that works for me. Thanks for handling it so quickly.", "Great, thanks for understanding and actually helping. That's all I needed."]);
+    done = true;
+  } else if (hits.action && !hits.empathy) {
+    reply = pick(["Okay… but you could at least acknowledge how frustrating this has been.", "Fine, but a bit of empathy would go a long way here."]);
+  } else if (hits.empathy && !hits.action) {
+    reply = pick(["I appreciate the apology, but what are you actually going to DO about it?", "Thanks, but I need a real solution, not just sympathy."]);
+  } else if (turn >= 4) {
+    reply = pick(["We seem to be going in circles. Can you please just resolve this?", "I'm losing patience — I really need this fixed today."]);
+  } else {
+    reply = scenarioNudge(scenario);
+  }
+  return { reply, done, score, hits };
+}
+
+/* ---- Public async helpers (AI when configured, else offline) ---- */
+async function getExplanation(item, userAns, settings) {
+  if (aiEnabled(settings)) {
+    try {
+      return await callClaude({
+        system: "You are a concise, encouraging BPO English-exam tutor. In 2–4 sentences, explain why the correct answer is right and (if the student was wrong) why their choice is not. No preamble.",
+        messages: [{ role: "user", content: describeItem(item, userAns) }], settings, maxTokens: 300,
+      });
+    } catch (e) { return offlineExplain(item, userAns) + `\n\n(Offline tutor — live AI unavailable: ${String(e.message || e).slice(0, 60)})`; }
+  }
+  return offlineExplain(item, userAns);
+}
+async function getCoaching(result, settings) {
+  if (aiEnabled(settings)) {
+    try {
+      const summary = `Overall ${result.overall}%. Sections: ${result.sections.map((s) => `${s.label} ${s.score}%`).join(", ")}.`;
+      return await callClaude({
+        system: "You are an expert BPO assessment coach. Given a candidate's section scores, give a short, motivating analysis: 2-line summary, strengths, 2–3 prioritized focus areas with one concrete drill each, and a next step. Use plain text with simple bullets.",
+        messages: [{ role: "user", content: summary }], settings, maxTokens: 600,
+      });
+    } catch (e) { return offlineCoach(result) + `\n\n(Offline coach — live AI unavailable: ${String(e.message || e).slice(0, 60)})`; }
+  }
+  return offlineCoach(result);
+}
+async function getCustomerReply(scenario, history, userMsg, settings) {
+  const offline = offlineCustomerReply(scenario, history, userMsg); // always compute score/done deterministically
+  if (aiEnabled(settings)) {
+    try {
+      const convo = history.map((m) => `${m.role === "user" ? "Agent" : "Customer"}: ${m.text}`).join("\n");
+      const reply = await callClaude({
+        system: `You are roleplaying a customer in a contact-center chat simulation. Persona: ${scenario.persona}. Situation: ${scenario.brief} Stay in character as the CUSTOMER only. Keep replies to 1–2 sentences. Become satisfied and end politely once the agent has shown empathy AND offered a concrete solution. Do not break character or give meta commentary.`,
+        messages: [{ role: "user", content: `Conversation so far:\n${convo}\nAgent: ${userMsg}\n\nReply as the customer:` }],
+        settings, maxTokens: 160,
+      });
+      return { reply: reply.trim(), done: offline.done, score: offline.score, hits: offline.hits };
+    } catch (e) { return offline; }
+  }
+  return offline;
+}
+
+/* ============================================================
+   SCORING ENGINE
+   ============================================================ */
+function scoreEmail(text, item) {
+  text = (text || "").trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  const lower = text.toLowerCase();
+  const fb = [];
+  let lenScore = 0;
+  if (words >= item.minWords) lenScore = 30;
+  else if (words > 0) { lenScore = Math.round((30 * words) / item.minWords); fb.push(`A bit short — aim for at least ${item.minWords} words (you wrote ${words}).`); }
+  else fb.push("No response was written.");
+  const hits = item.keywords.filter((k) => lower.includes(k));
+  const kwScore = Math.round((40 * hits.length) / item.keywords.length);
+  if (hits.length < item.keywords.length && words > 0) {
+    const missing = item.keywords.filter((k) => !lower.includes(k));
+    fb.push("Try to address: " + missing.slice(0, 5).join(", ") + ".");
+  }
+  let struct = 0;
+  const hasGreet = /\b(hi|hello|dear|good (morning|afternoon|evening))\b/.test(lower);
+  const hasClose = /(regards|sincerely|thank you|best wishes|warm regards|kind regards|cheers|best,)/.test(lower);
+  if (hasGreet) struct += 10; else if (words > 0) fb.push("Open with a greeting (e.g., “Dear Mr. Lopez,”).");
+  if (hasClose) struct += 10; else if (words > 0) fb.push("Close professionally (e.g., “Kind regards, …”).");
+  const polite = /(please|thank|apolog|appreciate|sorry)/.test(lower);
+  const polScore = polite ? 10 : 0;
+  if (!polite && words > 0) fb.push("Use courteous language (please / thank you / apologies).");
+  let penalty = 0;
+  const letters = text.replace(/[^a-zA-Z]/g, "");
+  if (letters && letters === letters.toUpperCase() && letters.length > 12) { penalty += 15; fb.push("Avoid writing in ALL CAPS — it reads as shouting."); }
+  const score = clamp(lenScore + kwScore + struct + polScore - penalty);
+  if (fb.length === 0) fb.push("Well structured, courteous, and on-topic — excellent work.");
+  return { score, words, feedback: fb, detail: { lenScore, kwScore, struct, polScore, penalty, hits: hits.length, total: item.keywords.length } };
+}
+
+function gradeExam(items, answers, times) {
+  times = times || {};
+  const bySection = {};
+  const detail = [];
+  let correct = 0, incorrect = 0, skipped = 0;
+  items.forEach((it) => {
+    let earned = 0, isCorrect = false, answered = false, chosen = null, userText = null, emailFb = null;
+    const a = answers[it.iid];
+    if (it.type === "mcq") {
+      if (a === undefined || a === null) skipped++;
+      else { answered = true; chosen = a; if (a === it.answer) { earned = 100; isCorrect = true; correct++; } else incorrect++; }
+    } else if (it.type === "sjt") {
+      if (a === undefined || a === null) skipped++;
+      else { answered = true; chosen = a; earned = it.options[a].score; if (a === it.best) { isCorrect = true; correct++; } else incorrect++; }
+    } else if (it.type === "email") {
+      userText = a || ""; const r = scoreEmail(userText, it); earned = r.score; emailFb = r;
+      if (userText.trim()) { answered = true; if (earned >= 60) { isCorrect = true; correct++; } else incorrect++; } else skipped++;
+    }
+    if (!bySection[it.section]) bySection[it.section] = { sum: 0, count: 0 };
+    bySection[it.section].sum += earned;
+    bySection[it.section].count += 1;
+    detail.push({ ...it, earned, isCorrect, answered, chosen, userText, emailFb, time: times[it.iid] || 0 });
+  });
+  const sections = Object.keys(bySection).map((k) => ({
+    key: k, label: SECTION_META[k].label, weight: SECTION_META[k].weight,
+    score: Math.round(bySection[k].sum / bySection[k].count),
+  }));
+  const wsum = sections.reduce((s, x) => s + x.weight, 0) || 1;
+  const overall = Math.round(sections.reduce((s, x) => s + x.score * x.weight, 0) / wsum);
+  return { overall, sections, items: detail, counts: { correct, incorrect, skipped, total: items.length } };
+}
+
+/* ============================================================
+   EXAM ENGINE — reducer (timer, answers, flags, autosave-ready)
+   ============================================================ */
+function makeExamState(set, items) {
+  return {
+    setId: set.id, setTitle: set.title, tier: set.tier, minutes: set.minutes,
+    items, index: 0, answers: {}, flags: {}, times: {},
+    timeLeft: set.minutes * 60, startedAt: Date.now(), status: "active",
+  };
+}
+function examReducer(state, action) {
+  switch (action.type) {
+    case "restore": return action.state;
+    case "answer": return { ...state, answers: { ...state.answers, [action.iid]: action.value } };
+    case "flag": { const f = { ...state.flags }; f[action.iid] = !f[action.iid]; return { ...state, flags: f }; }
+    case "goto": return { ...state, index: clamp(action.index, 0, state.items.length - 1) };
+    case "next": return { ...state, index: Math.min(state.index + 1, state.items.length - 1) };
+    case "prev": return { ...state, index: Math.max(state.index - 1, 0) };
+    case "tick": {
+      if (state.status !== "active") return state;
+      const left = state.timeLeft - 1;
+      const cur = state.items[state.index];
+      const times = { ...state.times, [cur.iid]: (state.times[cur.iid] || 0) + 1 };
+      if (left <= 0) return { ...state, timeLeft: 0, times, status: "submitted" };
+      return { ...state, timeLeft: left, times };
+    }
+    case "submit": return { ...state, status: "submitted" };
+    default: return state;
+  }
+}
+
+/* ============================================================
+   SHARED HOOKS + UI PRIMITIVES
+   ============================================================ */
+function useInterval(cb, delay) {
+  const ref = useRef(cb);
+  useEffect(() => { ref.current = cb; });
+  useEffect(() => { if (delay == null) return; const id = setInterval(() => ref.current(), delay); return () => clearInterval(id); }, [delay]);
+}
+
+function Btn({ children, onClick, variant = "primary", size = "md", icon, iconRight, disabled, className = "", type = "button", full }) {
+  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all active:scale-[.98] disabled:opacity-40 disabled:cursor-not-allowed";
+  const sizes = { sm: "text-sm px-3 py-1.5", md: "px-4 py-2.5", lg: "text-base px-6 py-3" };
+  const variants = {
+    primary: "bg-sky-600 text-white hover:bg-sky-700 shadow-sm shadow-sky-600/20",
+    dark: "bg-slate-900 text-white hover:bg-slate-800",
+    ghost: "text-slate-600 hover:bg-slate-100",
+    outline: "border border-slate-300 text-slate-700 hover:bg-slate-50 bg-white",
+    success: "bg-emerald-600 text-white hover:bg-emerald-700",
+    danger: "bg-rose-600 text-white hover:bg-rose-700",
+    soft: "bg-sky-50 text-sky-700 hover:bg-sky-100",
+    softdark: "bg-slate-100 text-slate-700 hover:bg-slate-200",
+  };
+  return (
+    <button type={type} disabled={disabled} onClick={onClick}
+      className={[base, sizes[size], variants[variant], full ? "w-full" : "", className].join(" ")}>
+      {icon && <Icon name={icon} size={size === "sm" ? 15 : 18} />}
+      {children}
+      {iconRight && <Icon name={iconRight} size={size === "sm" ? 15 : 18} />}
+    </button>
+  );
+}
+function Card({ children, className = "", pad = true }) {
+  return <div className={`bg-white rounded-2xl border border-slate-200/80 shadow-sm ${pad ? "p-5" : ""} ${className}`}>{children}</div>;
+}
+function Badge({ children, tone = "slate", className = "" }) {
+  const tones = { slate: "bg-slate-100 text-slate-600", emerald: "bg-emerald-100 text-emerald-700", sky: "bg-sky-100 text-sky-700", amber: "bg-amber-100 text-amber-700", rose: "bg-rose-100 text-rose-700", indigo: "bg-indigo-100 text-indigo-700", white: "bg-white/15 text-white" };
+  return <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${tones[tone]} ${className}`}>{children}</span>;
+}
+function Modal({ open, onClose, title, children, maxW = "max-w-lg", icon }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${maxW} bpo-pop max-h-[90vh] overflow-auto`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl z-10">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">{icon && <Icon name={icon} size={18} className="text-sky-600" />}{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100"><Icon name="x" size={18} /></button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+function StatTile({ icon, label, value, sub, tone = "sky" }) {
+  const tones = { sky: "text-sky-600 bg-sky-50", emerald: "text-emerald-600 bg-emerald-50", amber: "text-amber-600 bg-amber-50", indigo: "text-indigo-600 bg-indigo-50", rose: "text-rose-600 bg-rose-50", slate: "text-slate-600 bg-slate-100" };
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${tones[tone]}`}><Icon name={icon} size={20} /></div>
+      <div className="min-w-0">
+        <div className="text-2xl font-extrabold text-slate-800 tabular leading-none">{value}</div>
+        <div className="text-xs text-slate-500 mt-1 truncate">{label}{sub ? <span className="text-slate-400"> · {sub}</span> : ""}</div>
+      </div>
+    </div>
+  );
+}
+function Empty({ icon = "info", title, sub }) {
+  return (
+    <div className="text-center py-12 text-slate-400">
+      <div className="w-14 h-14 rounded-2xl bg-slate-100 grid place-items-center mx-auto mb-3"><Icon name={icon} size={26} /></div>
+      <div className="font-semibold text-slate-500">{title}</div>
+      {sub && <div className="text-sm mt-1">{sub}</div>}
+    </div>
+  );
+}
+const tierTone = (t) => ({ 1: "emerald", 2: "sky", 3: "indigo" }[t]);
+function SectionChip({ sec }) {
+  const m = SECTION_META[sec];
+  return <Badge tone="slate"><Icon name={m.icon} size={12} />{m.label}</Badge>;
+}
+
+/* ============================================================
+   VIEW — DASHBOARD
+   ============================================================ */
+function SetCard({ set, best, hasActive, onStart, onResume }) {
+  const tone = tierTone(set.tier);
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-4 flex flex-col">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-9 h-9 rounded-xl grid place-items-center text-white text-sm font-bold bg-${tone}-500`}>{set.n}</div>
+          <Badge tone={tone}>{TIERS[set.tier].name}</Badge>
+        </div>
+        {best != null ? <Badge tone={best >= 70 ? "emerald" : "amber"}><Icon name="trophy" size={11} />{best}%</Badge>
+          : <span className="text-[11px] text-slate-400 font-medium">Not attempted</span>}
+      </div>
+      <h4 className="font-bold text-slate-800 mt-3 leading-tight text-[15px]">{set.shortTitle}</h4>
+      <div className="flex items-center gap-3 text-xs text-slate-500 mt-2">
+        <span className="inline-flex items-center gap-1"><Icon name="clock" size={13} />{set.minutes}m</span>
+        <span className="inline-flex items-center gap-1"><Icon name="clipboard" size={13} />{set.totalQ} items</span>
+        <span className="inline-flex items-center gap-1">{"●".repeat(set.diff)}<span className="text-slate-300">{"●".repeat(3 - set.diff)}</span></span>
+      </div>
+      <div className="mt-4 pt-1">
+        {hasActive
+          ? <Btn variant="dark" size="sm" full icon="play" onClick={onResume}>Resume</Btn>
+          : <Btn variant={best != null ? "outline" : "primary"} size="sm" full icon={best != null ? "refresh" : "play"} onClick={onStart}>{best != null ? "Retake" : "Start exam"}</Btn>}
+      </div>
+    </div>
+  );
+}
+function ModuleCard({ icon, title, sub, tone, onClick }) {
+  return (
+    <button onClick={onClick} className="text-left bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-4 flex items-center gap-3 w-full">
+      <div className={`w-11 h-11 rounded-xl grid place-items-center text-${tone}-600 bg-${tone}-50 shrink-0`}><Icon name={icon} size={20} /></div>
+      <div className="min-w-0">
+        <div className="font-bold text-slate-800 text-[15px]">{title}</div>
+        <div className="text-xs text-slate-500 truncate">{sub}</div>
+      </div>
+      <Icon name="arrowRight" size={16} className="ml-auto text-slate-300" />
+    </button>
+  );
+}
+function Dashboard({ settings, results, active, go, onStartSet, onResume, onOpenSettings }) {
+  const examResults = useMemo(() => results.filter((r) => r.kind === "exam"), [results]);
+  const typingResults = useMemo(() => results.filter((r) => r.kind === "typing"), [results]);
+  const bestBySet = useMemo(() => {
+    const m = {};
+    examResults.forEach((r) => { if (m[r.setId] == null || r.overall > m[r.setId]) m[r.setId] = r.overall; });
+    return m;
+  }, [examResults]);
+  const stats = useMemo(() => {
+    const n = examResults.length;
+    const avg = n ? Math.round(examResults.reduce((s, r) => s + r.overall, 0) / n) : null;
+    const best = n ? Math.max(...examResults.map((r) => r.overall)) : null;
+    const bestWpm = typingResults.length ? Math.max(...typingResults.map((r) => r.wpm)) : null;
+    const completed = Object.keys(bestBySet).length;
+    return { n, avg, best, bestWpm, completed };
+  }, [examResults, typingResults, bestBySet]);
+  const name = settings.candidate || "Candidate";
+  const byTier = { 1: SETS.filter((s) => s.tier === 1), 2: SETS.filter((s) => s.tier === 2), 3: SETS.filter((s) => s.tier === 3) };
+
+  return (
+    <div className="bpo-fade space-y-6">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 text-white p-6 sm:p-8 shadow-lg">
+        <div className="absolute -right-10 -top-10 w-56 h-56 rounded-full bg-sky-500/20 blur-2xl" />
+        <div className="absolute right-24 bottom-0 w-40 h-40 rounded-full bg-indigo-500/20 blur-2xl" />
+        <div className="relative flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="flex-1">
+            <Badge tone="white"><Icon name="headset" size={12} />BPO Computer-Based Test</Badge>
+            <h1 className="text-2xl sm:text-3xl font-extrabold mt-3">Welcome back, {name.split(" ")[0]} 👋</h1>
+            <p className="text-slate-300 mt-1.5 max-w-xl text-sm sm:text-base">Versant · SVAR · Berlitz-style readiness training. Grammar, vocabulary, comprehension, situational judgment, email writing, typing and live chat handling — all in one portal.</p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {active ? <Btn variant="primary" icon="play" onClick={onResume}>Resume “{active.setTitle.split("—")[1] ? active.setTitle.split("—")[1].trim() : active.setTitle}”</Btn> : null}
+              <Btn variant="soft" icon="keyboard" onClick={() => go("typing")}>Typing test</Btn>
+              <Btn variant="soft" icon="chat" onClick={() => go("chat")}>Chat simulator</Btn>
+            </div>
+          </div>
+          <div className="lg:w-72 shrink-0 bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/10">
+            <div className="text-xs uppercase tracking-wide text-slate-300 font-semibold">Overall readiness</div>
+            <div className="flex items-center gap-4 mt-2">
+              <ScoreRing value={stats.avg || 0} size={104} stroke={10} label="Avg" />
+              <div className="text-sm space-y-1.5">
+                <div className="flex items-center gap-2"><Icon name="clipboard" size={14} className="text-sky-300" /> {stats.completed}/30 sets</div>
+                <div className="flex items-center gap-2"><Icon name="trophy" size={14} className="text-amber-300" /> Best {stats.best != null ? stats.best + "%" : "—"}</div>
+                <div className="flex items-center gap-2"><Icon name="keyboard" size={14} className="text-emerald-300" /> {stats.bestWpm != null ? stats.bestWpm + " WPM" : "No typing yet"}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card><StatTile icon="clipboard" tone="sky" value={stats.n} label="Exams taken" /></Card>
+        <Card><StatTile icon="chart" tone="emerald" value={stats.avg != null ? stats.avg + "%" : "—"} label="Average score" /></Card>
+        <Card><StatTile icon="trophy" tone="amber" value={stats.best != null ? stats.best + "%" : "—"} label="Best score" /></Card>
+        <Card><StatTile icon="target" tone="indigo" value={stats.completed} label="Sets cleared" sub="of 30" /></Card>
+      </div>
+
+      {/* Modules */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <ModuleCard icon="brain" tone="indigo" title="AI Coach" sub="Personalized feedback" onClick={() => go("coach")} />
+        <ModuleCard icon="chart" tone="sky" title="Deep Analysis" sub="Topic-wise breakdown" onClick={() => go("analysis")} />
+        <ModuleCard icon="trending" tone="emerald" title="Progress" sub="Score trend over time" onClick={() => go("progress")} />
+        <ModuleCard icon="settings" tone="slate" title="Settings" sub="Profile · AI · pass mark" onClick={onOpenSettings} />
+      </div>
+
+      {/* Sets by tier */}
+      {[1, 2, 3].map((t) => (
+        <div key={t}>
+          <div className="flex items-center gap-3 mb-3 mt-2">
+            <div className={`w-1.5 h-7 rounded-full bg-${tierTone(t)}-500`} />
+            <h2 className="text-lg font-extrabold text-slate-800">{TIERS[t].name}</h2>
+            <Badge tone={tierTone(t)}>Tier {t}</Badge>
+            <span className="text-sm text-slate-400 hidden sm:block">{TIERS[t].desc}</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {byTier[t].map((set) => (
+              <SetCard key={set.id} set={set} best={bestBySet[set.id]}
+                hasActive={active && active.setId === set.id}
+                onStart={() => onStartSet(set)} onResume={onResume} />
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="text-center text-xs text-slate-400 pt-2 pb-6">
+        {storeOK ? "Progress auto-saves to this browser." : "⚠ Storage unavailable — progress won't persist in this browser."} · Seed question bank — fully expandable in the source.
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   VIEW — EXAM SCREEN
+   ============================================================ */
+function OptionButton({ label, text, selected, onClick }) {
+  return (
+    <button onClick={onClick}
+      className={`w-full text-left flex items-start gap-3 p-3.5 rounded-xl border transition-all ${selected ? "border-sky-500 bg-sky-50 ring-1 ring-sky-500" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 bg-white"}`}>
+      <span className={`w-7 h-7 rounded-lg grid place-items-center text-sm font-bold shrink-0 ${selected ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500"}`}>{label}</span>
+      <span className={`pt-0.5 ${selected ? "text-slate-800 font-medium" : "text-slate-700"}`}>{text}</span>
+    </button>
+  );
+}
+function ExamView({ set, restoredState, settings, onFinish, onExit }) {
+  const [state, dispatch] = useReducer(examReducer, null, () => restoredState || makeExamState(set, buildExam(set)));
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [confirmExit, setConfirmExit] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const submittedRef = useRef(false);
+  const item = state.items[state.index];
+  const total = state.items.length;
+  const answeredCount = state.items.filter((it) => state.answers[it.iid] !== undefined && state.answers[it.iid] !== "").length;
+  const flaggedCount = Object.values(state.flags).filter(Boolean).length;
+
+  // timer
+  useInterval(() => dispatch({ type: "tick" }), state.status === "active" ? 1000 : null);
+  // autosave on changes
+  useEffect(() => {
+    if (state.status !== "active") return;
+    saveActive(state);
+    setSavedFlash(true);
+    const t = setTimeout(() => setSavedFlash(false), 1200);
+    return () => clearTimeout(t);
+  }, [state.answers, state.flags, state.index]);
+  // periodic autosave (captures timer)
+  useInterval(() => { if (state.status === "active") saveActive(state); }, 15000);
+  // handle submission
+  useEffect(() => {
+    if (state.status === "submitted" && !submittedRef.current) {
+      submittedRef.current = true;
+      const graded = gradeExam(state.items, state.answers, state.times);
+      const passMark = settings.passMark || 70;
+      const record = {
+        id: uid(), kind: "exam", setId: state.setId, setTitle: state.setTitle, tier: state.tier,
+        ts: Date.now(), overall: graded.overall, sections: graded.sections, counts: graded.counts,
+        durationSec: state.minutes * 60 - state.timeLeft, grade: gradeFromScore(graded.overall),
+        pass: graded.overall >= passMark, detail: graded.items, answers: state.answers,
+      };
+      clearActive();
+      onFinish(record);
+    }
+  }, [state.status]);
+
+  const setAns = (val) => dispatch({ type: "answer", iid: item.iid, value: val });
+  // Keyboard shortcuts: ←/→ navigate, A–D or 1–4 answer, F flag (ignored while typing)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (state.status !== "active" || confirmSubmit || confirmExit) return;
+      const tag = (e.target && e.target.tagName ? e.target.tagName : "").toLowerCase();
+      if (tag === "textarea" || tag === "input") return;
+      const k = (e.key || "").toLowerCase();
+      if (e.key === "ArrowRight") { e.preventDefault(); dispatch({ type: "next" }); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); dispatch({ type: "prev" }); }
+      else if (k === "f") { dispatch({ type: "flag", iid: item.iid }); }
+      else if (item.type === "mcq" || item.type === "sjt") {
+        const letter = "abcd".indexOf(k);
+        const num = parseInt(e.key, 10);
+        if (letter >= 0 && letter < item.options.length) setAns(letter);
+        else if (num >= 1 && num <= item.options.length) setAns(num - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [item, state.index, state.status, confirmSubmit, confirmExit]);
+  const low = state.timeLeft <= 60;
+
+  return (
+    <div className="bpo-fade">
+      {/* Exam top bar */}
+      <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center gap-3 flex-wrap">
+        <button onClick={() => setConfirmExit(true)} className="text-slate-500 hover:text-slate-800 inline-flex items-center gap-1.5 text-sm font-semibold"><Icon name="left" size={16} />Exit</button>
+        <div className="hidden sm:block w-px h-6 bg-slate-200" />
+        <div className="min-w-0">
+          <div className="font-bold text-slate-800 truncate text-sm sm:text-base">{set.title}</div>
+          <div className="text-xs text-slate-400">Question {state.index + 1} of {total} · {SECTION_META[item.section].label}</div>
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          <span className={`text-xs font-medium inline-flex items-center gap-1 ${savedFlash ? "text-emerald-600" : "text-slate-300"}`}><Icon name="check" size={13} />{savedFlash ? "Saved" : "Auto-save"}</span>
+          <div className={`tabular font-bold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${low ? "bg-rose-50 text-rose-600 bpo-pulse" : "bg-slate-100 text-slate-700"}`}>
+            <Icon name="clock" size={16} />{fmtClock(state.timeLeft)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_280px] gap-5 mt-5">
+        {/* Question panel */}
+        <div>
+          <Card className="min-h-[60vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <SectionChip sec={item.section} />
+              <button onClick={() => dispatch({ type: "flag", iid: item.iid })}
+                className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition ${state.flags[item.iid] ? "bg-amber-100 text-amber-700" : "text-slate-400 hover:bg-slate-100"}`}>
+                <Icon name="flag" size={15} fill={state.flags[item.iid] ? "currentColor" : "none"} />{state.flags[item.iid] ? "Flagged" : "Flag for review"}
+              </button>
+            </div>
+
+            {item.type === "mcq" && item.passage && (
+              <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><Icon name="book" size={13} />{item.passageTitle}</div>
+                <p className="text-slate-700 text-sm leading-relaxed">{item.passage}</p>
+              </div>
+            )}
+
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-4 leading-snug">{item.type === "email" ? "Email Writing Task" : item.q}</h2>
+
+            {(item.type === "mcq" || item.type === "sjt") && (
+              <div className="space-y-2.5 mt-5">
+                {item.options.map((opt, i) => (
+                  <OptionButton key={i} label={String.fromCharCode(65 + i)}
+                    text={item.type === "sjt" ? opt.text : opt}
+                    selected={state.answers[item.iid] === i}
+                    onClick={() => setAns(i)} />
+                ))}
+              </div>
+            )}
+
+            {item.type === "email" && (
+              <div className="mt-3 flex-1 flex flex-col">
+                <p className="text-slate-600">{item.prompt}</p>
+                <div className="mt-2 text-xs text-slate-400 flex items-center gap-1.5"><Icon name="bulb" size={13} />Include a greeting, a clear resolution, a courteous tone, and a professional closing.</div>
+                <textarea
+                  value={state.answers[item.iid] || ""}
+                  onChange={(e) => setAns(e.target.value)}
+                  placeholder="Dear customer,&#10;&#10;Thank you for reaching out…"
+                  className="mt-3 flex-1 min-h-[220px] w-full rounded-xl border border-slate-200 p-4 text-slate-700 leading-relaxed focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none resize-y" />
+                <div className="text-xs text-slate-400 mt-1.5 text-right">{(state.answers[item.iid] || "").trim() ? (state.answers[item.iid].trim().split(/\s+/).length) : 0} words · target ≥ {item.minWords}</div>
+              </div>
+            )}
+
+            {/* nav footer */}
+            <div className="mt-auto pt-5 flex items-center gap-2">
+              <Btn variant="outline" icon="left" disabled={state.index === 0} onClick={() => dispatch({ type: "prev" })}>Prev</Btn>
+              <div className="ml-auto flex items-center gap-2">
+                <Btn variant="soft" onClick={() => setConfirmSubmit(true)} icon="checkCircle">Review &amp; submit</Btn>
+                {state.index < total - 1
+                  ? <Btn variant="primary" iconRight="right" onClick={() => dispatch({ type: "next" })}>Next</Btn>
+                  : <Btn variant="success" icon="check" onClick={() => setConfirmSubmit(true)}>Finish</Btn>}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Navigator */}
+        <div className="hidden lg:block">
+          <Card className="sticky top-20">
+            <div className="font-bold text-slate-800 text-sm mb-3">Question navigator</div>
+            <div className="grid grid-cols-6 gap-1.5">
+              {state.items.map((it, i) => {
+                const ans = state.answers[it.iid] !== undefined && state.answers[it.iid] !== "";
+                const cur = i === state.index;
+                const fl = state.flags[it.iid];
+                const cls = cur ? "bg-slate-900 text-white" : ans ? "bg-sky-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200";
+                return (
+                  <button key={it.iid} onClick={() => dispatch({ type: "goto", index: i })}
+                    className={`relative h-9 rounded-lg text-sm font-bold ${cls}`}>
+                    {i + 1}
+                    {fl && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 space-y-1.5 text-xs text-slate-500">
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-sky-500" />Answered ({answeredCount})</div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-slate-200" />Unanswered ({total - answeredCount})</div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400" />Flagged ({flaggedCount})</div>
+            </div>
+            <div className="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full bg-sky-500 rounded-full" style={{ width: pct(answeredCount, total) + "%" }} />
+            </div>
+            <Btn variant="dark" full className="mt-4" icon="checkCircle" onClick={() => setConfirmSubmit(true)}>Submit exam</Btn>
+            <div className="mt-3 text-[11px] text-slate-400 text-center leading-relaxed">⌨ <b className="text-slate-500">←/→</b> navigate · <b className="text-slate-500">A–D</b> answer · <b className="text-slate-500">F</b> flag</div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Submit modal */}
+      <Modal open={confirmSubmit} onClose={() => setConfirmSubmit(false)} title="Submit exam?" icon="checkCircle">
+        <p className="text-slate-600">Review your status before submitting. You can't change answers after this.</p>
+        <div className="grid grid-cols-3 gap-3 my-4">
+          <div className="text-center p-3 rounded-xl bg-sky-50"><div className="text-2xl font-extrabold text-sky-600">{answeredCount}</div><div className="text-xs text-slate-500">Answered</div></div>
+          <div className="text-center p-3 rounded-xl bg-slate-100"><div className="text-2xl font-extrabold text-slate-600">{total - answeredCount}</div><div className="text-xs text-slate-500">Unanswered</div></div>
+          <div className="text-center p-3 rounded-xl bg-amber-50"><div className="text-2xl font-extrabold text-amber-600">{flaggedCount}</div><div className="text-xs text-slate-500">Flagged</div></div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <Btn variant="outline" onClick={() => setConfirmSubmit(false)}>Keep working</Btn>
+          <Btn variant="success" icon="check" onClick={() => { setConfirmSubmit(false); dispatch({ type: "submit" }); }}>Submit now</Btn>
+        </div>
+      </Modal>
+      {/* Exit modal */}
+      <Modal open={confirmExit} onClose={() => setConfirmExit(false)} title="Exit exam?" icon="alert">
+        <p className="text-slate-600">Your progress is auto-saved — you can resume this exam later from the dashboard.</p>
+        <div className="flex gap-2 justify-end mt-4">
+          <Btn variant="outline" onClick={() => setConfirmExit(false)}>Stay</Btn>
+          <Btn variant="danger" icon="logout" onClick={() => { saveActive(state); onExit(); }}>Save &amp; exit</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/* ============================================================
+   VIEW — RESULT
+   ============================================================ */
+function ReviewItem({ it, idx, settings }) {
+  const [open, setOpen] = useState(false);
+  const [exp, setExp] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const correctTone = it.type === "email" ? (it.earned >= 60 ? "emerald" : "rose") : it.isCorrect ? "emerald" : it.answered ? "rose" : "slate";
+  const loadExp = async () => {
+    setOpen(true);
+    if (exp || it.type === "email") return;
+    setLoading(true);
+    const txt = await getExplanation(it, it.chosen, settings);
+    setExp(txt); setLoading(false);
+  };
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <button onClick={() => (open ? setOpen(false) : loadExp())} className="w-full flex items-center gap-3 p-3.5 hover:bg-slate-50 text-left">
+        <span className={`w-7 h-7 rounded-lg grid place-items-center text-white text-xs font-bold shrink-0 bg-${correctTone}-500`}>
+          {it.type === "email" ? it.earned : it.isCorrect ? <Icon name="check" size={15} /> : it.answered ? <Icon name="x" size={15} /> : "–"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{idx}. {SECTION_META[it.section].label}</div>
+          <div className="text-sm font-medium text-slate-700 truncate">{it.type === "email" ? it.prompt : it.q}</div>
+        </div>
+        <Icon name={open ? "up" : "down"} size={16} className="text-slate-300 shrink-0" />
+      </button>
+      {open && (
+        <div className="px-3.5 pb-4 pt-1 bg-slate-50/60 border-t border-slate-100 text-sm">
+          {(it.type === "mcq") && (
+            <div className="space-y-1.5 my-2">
+              {it.options.map((o, i) => (
+                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${i === it.answer ? "bg-emerald-100 text-emerald-800 font-semibold" : i === it.chosen ? "bg-rose-100 text-rose-700" : "text-slate-500"}`}>
+                  <span className="font-bold">{String.fromCharCode(65 + i)}.</span>{o}
+                  {i === it.answer && <Icon name="check" size={14} className="ml-auto" />}
+                  {i === it.chosen && i !== it.answer && <Icon name="x" size={14} className="ml-auto" />}
+                </div>
+              ))}
+            </div>
+          )}
+          {it.type === "sjt" && (
+            <div className="space-y-1.5 my-2">
+              {it.options.map((o, i) => (
+                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${i === it.best ? "bg-emerald-100 text-emerald-800 font-semibold" : i === it.chosen ? "bg-amber-100 text-amber-800" : "text-slate-500"}`}>
+                  <span className="font-bold">{String.fromCharCode(65 + i)}.</span>{o.text}
+                  <span className="ml-auto text-xs font-bold tabular">{o.score}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {it.type === "email" && (
+            <div className="my-2">
+              <div className="text-xs font-semibold text-slate-500 mb-1">Your response ({it.emailFb ? it.emailFb.words : 0} words · scored {it.earned}/100):</div>
+              <div className="p-3 rounded-lg bg-white border border-slate-200 whitespace-pre-wrap text-slate-700 text-sm">{it.userText || <span className="text-slate-400 italic">No response written.</span>}</div>
+              {it.emailFb && <ul className="mt-2 space-y-1">{it.emailFb.feedback.map((f, i) => <li key={i} className="flex gap-2 text-slate-600"><Icon name="arrowRight" size={14} className="text-sky-500 mt-0.5 shrink-0" />{f}</li>)}</ul>}
+            </div>
+          )}
+          <div className="mt-2 p-3 rounded-lg bg-sky-50 border border-sky-100">
+            <div className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1 flex items-center gap-1.5"><Icon name="bulb" size={13} />Explanation</div>
+            {loading ? <div className="text-slate-400 flex items-center gap-2"><span className="w-4 h-4 border-2 border-slate-300 border-t-sky-500 rounded-full bpo-spin inline-block" />Generating…</div>
+              : <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">{it.type === "email" ? it.explain : (exp || it.explain)}</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function ResultView({ result, settings, go, onRetake, onBack }) {
+  const [coach, setCoach] = useState(null);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const analysis = analyzeResult(result);
+  const donut = [
+    { label: "Correct", value: result.counts.correct, color: "#10b981" },
+    { label: "Incorrect", value: result.counts.incorrect, color: "#f43f5e" },
+    { label: "Skipped", value: result.counts.skipped, color: "#cbd5e1" },
+  ];
+  const loadCoach = async () => { setCoachLoading(true); const t = await getCoaching(result, settings); setCoach(t); setCoachLoading(false); };
+  const items = filter === "all" ? result.detail : filter === "wrong" ? result.detail.filter((d) => !d.isCorrect) : result.detail.filter((d) => d.section === filter);
+
+  return (
+    <div className="bpo-fade space-y-5">
+      {/* Banner */}
+      <div className={`rounded-3xl p-6 sm:p-7 text-white shadow-lg relative overflow-hidden ${result.pass ? "bg-gradient-to-br from-emerald-600 to-teal-700" : "bg-gradient-to-br from-rose-600 to-orange-700"}`}>
+        <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col sm:flex-row items-center gap-6">
+          <ScoreRing value={result.overall} size={132} stroke={12} label="Score" />
+          <div className="text-center sm:text-left">
+            <Badge tone="white">{result.pass ? <><Icon name="trophy" size={12} />Passed</> : <><Icon name="alert" size={12} />Below pass mark</>}</Badge>
+            <h1 className="text-2xl sm:text-3xl font-extrabold mt-2">{result.grade}</h1>
+            <p className="text-white/80 mt-1 text-sm">{result.setTitle}</p>
+            <p className="text-white/70 text-xs mt-1">{fmtDate(result.ts)} · {Math.floor(result.durationSec / 60)}m {result.durationSec % 60}s · pass mark {settings.passMark || 70}%</p>
+          </div>
+          <div className="sm:ml-auto flex gap-2">
+            <Btn variant="soft" icon="refresh" onClick={() => onRetake(result.setId)}>Retake</Btn>
+            <Btn variant="dark" icon="dashboard" onClick={onBack}>Dashboard</Btn>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        {/* Sections + radar */}
+        <Card className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icon name="chart" size={18} className="text-sky-600" />Section performance</h3>
+            <Btn variant="soft" size="sm" icon="chart" onClick={() => go("analysis")}>Full analysis</Btn>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-5 items-center">
+            <SectionBars data={result.sections.map((s) => ({ label: s.label, value: s.score }))} />
+            <RadarChart axes={result.sections.map((s) => ({ label: s.label.split(" ")[0], value: s.score }))} size={230} />
+          </div>
+        </Card>
+
+        {/* Breakdown */}
+        <Card>
+          <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Icon name="target" size={18} className="text-indigo-600" />Answer breakdown</h3>
+          <Donut segments={donut} size={130} stroke={18} />
+          <div className="mt-4 space-y-2 text-sm">
+            {analysis.strong.length > 0 && <div className="flex items-start gap-2"><Icon name="trophy" size={15} className="text-emerald-500 mt-0.5" /><span className="text-slate-600">Strong in <b>{analysis.strong.map((s) => s.label).join(", ")}</b></span></div>}
+            {analysis.weak.length > 0 && <div className="flex items-start gap-2"><Icon name="alert" size={15} className="text-amber-500 mt-0.5" /><span className="text-slate-600">Improve <b>{analysis.weak.map((s) => s.label).join(", ")}</b></span></div>}
+          </div>
+        </Card>
+      </div>
+
+      {/* AI coach */}
+      <Card>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icon name="brain" size={18} className="text-indigo-600" />AI Coach feedback</h3>
+          {!coach && <Btn variant="primary" size="sm" icon="sparkles" onClick={loadCoach} disabled={coachLoading}>{coachLoading ? "Analyzing…" : "Get my feedback"}</Btn>}
+        </div>
+        {coachLoading && <div className="text-slate-400 flex items-center gap-2 mt-3"><span className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full bpo-spin inline-block" />Coaching engine is reviewing your result…</div>}
+        {coach && <div className="mt-3 p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 text-slate-700 whitespace-pre-wrap leading-relaxed text-sm">{coach}</div>}
+        {!coach && !coachLoading && <p className="text-sm text-slate-400 mt-2">Get a personalized breakdown of strengths, focus areas, and a study plan.</p>}
+      </Card>
+
+      {/* Review */}
+      <Card>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icon name="list" size={18} className="text-sky-600" />Review answers</h3>
+          <div className="flex gap-1.5 flex-wrap">
+            {[["all", "All"], ["wrong", "Incorrect"], ...result.sections.map((s) => [s.key, s.label.split(" ")[0]])].map(([k, l]) => (
+              <button key={k} onClick={() => setFilter(k)} className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${filter === k ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          {items.length ? items.map((it, i) => <ReviewItem key={it.iid} it={it} idx={result.detail.indexOf(it) + 1} settings={settings} />) : <Empty icon="check" title="Nothing here" sub="No items match this filter." />}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================================
+   VIEW — DEEP ANALYSIS
+   ============================================================ */
+function AnalysisView({ results, settings, go }) {
+  const exam = useMemo(() => results.filter((r) => r.kind === "exam"), [results]);
+  if (!exam.length) return <PageHeader title="Deep Analysis" icon="chart" go={go}><Card><Empty icon="chart" title="No exam data yet" sub="Complete a practice set to unlock topic-wise analysis." /><div className="text-center"><Btn icon="play" onClick={() => go("dashboard")}>Browse practice sets</Btn></div></Card></PageHeader>;
+  const secKeys = ["grammar", "vocab", "reading", "sjt", "email"];
+  const agg = secKeys.map((key) => {
+    const scores = exam.flatMap((r) => r.sections.filter((s) => s.key === key).map((s) => s.score));
+    if (!scores.length) return null;
+    return { key, label: SECTION_META[key].label, icon: SECTION_META[key].icon, avg: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length), best: Math.max(...scores), attempts: scores.length };
+  }).filter(Boolean);
+  const overallAvg = Math.round(exam.reduce((s, r) => s + r.overall, 0) / exam.length);
+  const tierAgg = [1, 2, 3].map((t) => { const sc = exam.filter((r) => r.tier === t).map((r) => r.overall); return { t, avg: sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : null, n: sc.length }; });
+  const totals = exam.reduce((a, r) => ({ correct: a.correct + r.counts.correct, incorrect: a.incorrect + r.counts.incorrect, skipped: a.skipped + r.counts.skipped }), { correct: 0, incorrect: 0, skipped: 0 });
+  const recs = [...agg].sort((a, b) => a.avg - b.avg).filter((s) => s.avg < 80).slice(0, 3);
+
+  return (
+    <PageHeader title="Deep Analysis" icon="chart" go={go}>
+      <div className="space-y-5">
+        <div className="grid lg:grid-cols-3 gap-5">
+          <Card className="flex flex-col items-center justify-center text-center">
+            <ScoreRing value={overallAvg} size={130} stroke={12} label="Avg" />
+            <div className="mt-3 font-bold text-slate-800">{gradeFromScore(overallAvg)}</div>
+            <div className="text-xs text-slate-400">across {exam.length} attempt{exam.length > 1 ? "s" : ""}</div>
+          </Card>
+          <Card className="lg:col-span-2">
+            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2"><Icon name="target" size={18} className="text-indigo-600" />Skill profile</h3>
+            <div className="grid sm:grid-cols-2 gap-4 items-center">
+              <RadarChart axes={agg.map((a) => ({ label: a.label.split(" ")[0], value: a.avg }))} size={230} />
+              <Donut size={130} stroke={18} segments={[{ label: "Correct", value: totals.correct, color: "#10b981" }, { label: "Incorrect", value: totals.incorrect, color: "#f43f5e" }, { label: "Skipped", value: totals.skipped, color: "#cbd5e1" }]} />
+            </div>
+          </Card>
+        </div>
+
+        <Card>
+          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icon name="list" size={18} className="text-sky-600" />Topic-wise breakdown</h3>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {agg.map((a) => (
+              <div key={a.key} className="p-4 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="inline-flex items-center gap-2 font-semibold text-slate-700 text-sm"><Icon name={a.icon} size={16} className="text-slate-400" />{a.label}</span>
+                  <span className={"font-extrabold tabular " + bandText(a.avg)}>{a.avg}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className={"h-full rounded-full " + bandBg(a.avg)} style={{ width: a.avg + "%" }} /></div>
+                <div className="flex justify-between text-xs text-slate-400 mt-2"><span>Best {a.best}%</span><span>{a.attempts} graded</span></div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="grid lg:grid-cols-2 gap-5">
+          <Card>
+            <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Icon name="award" size={18} className="text-emerald-600" />Performance by tier</h3>
+            <div className="space-y-3">
+              {tierAgg.map((t) => (
+                <div key={t.t}>
+                  <div className="flex justify-between text-sm mb-1"><span className="font-medium text-slate-600">{TIERS[t.t].name} (Tier {t.t})</span><span className={"font-bold " + (t.avg != null ? bandText(t.avg) : "text-slate-300")}>{t.avg != null ? t.avg + "%" : "—"}</span></div>
+                  <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div className={"h-full rounded-full bg-" + tierTone(t.t) + "-500"} style={{ width: (t.avg || 0) + "%" }} /></div>
+                  <div className="text-xs text-slate-400 mt-1">{t.n} attempt{t.n === 1 ? "" : "s"}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card>
+            <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Icon name="bulb" size={18} className="text-amber-500" />Recommendations</h3>
+            {recs.length ? (
+              <div className="space-y-3">
+                {recs.map((r) => (
+                  <div key={r.key} className="p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+                    <div className="font-semibold text-slate-700 text-sm flex items-center gap-2"><Icon name={r.icon} size={15} className="text-amber-600" />{r.label} <span className="text-amber-600">· {r.avg}%</span></div>
+                    <div className="text-sm text-slate-600 mt-1">{(DRILLS[r.key] || [])[0]}</div>
+                  </div>
+                ))}
+                <Btn variant="soft" size="sm" icon="brain" full onClick={() => go("coach")}>Ask the AI Coach for a study plan</Btn>
+              </div>
+            ) : <Empty icon="trophy" title="Strong all-round!" sub="No weak areas — try Tier 3 mastery sets." />}
+          </Card>
+        </div>
+      </div>
+    </PageHeader>
+  );
+}
+
+/* ============================================================
+   VIEW — AI COACH (chat)
+   ============================================================ */
+function offlineCoachReply(q, result) {
+  const t = (q || "").toLowerCase();
+  for (const key of Object.keys(DRILLS)) {
+    if (t.includes(key) || t.includes(SECTION_META[key].label.toLowerCase().split(" ")[0])) return `For ${SECTION_META[key].label}:\n• ${DRILLS[key].join("\n• ")}`;
+  }
+  if (/typing|wpm|speed/.test(t)) return "Typing: practice 10 focused minutes daily, keep your fingers on the home row, prioritize accuracy over raw speed, and resist looking at the keyboard.";
+  if (/chat|customer|angry|escalat|empath/.test(t)) return "Chat handling: acknowledge the emotion first, confirm the issue, offer a concrete solution, then close by confirming resolution. Empathy + action is the winning combination.";
+  if (/(improve|study|plan|weak|better|score)/.test(t) && result) return offlineCoach(result);
+  return "I can coach you on grammar, vocabulary, reading, situational judgment, email writing, typing, or chat handling — just ask. Or take a practice set and I'll analyze your results in detail.";
+}
+async function coachReply(q, history, result, settings) {
+  if (aiEnabled(settings)) {
+    try {
+      const ctx = result ? `The candidate's latest result: ${result.overall}% overall; sections ${result.sections.map((s) => s.label + " " + s.score + "%").join(", ")}.` : "No exam taken yet.";
+      const msgs = history.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })).concat([{ role: "user", content: q }]);
+      return await callClaude({ system: `You are an encouraging, practical BPO English & communication coach. ${ctx} Give concise, actionable advice (a few short bullets max). Stay on assessment/communication topics.`, messages: msgs, settings, maxTokens: 500 });
+    } catch (e) { return offlineCoachReply(q, result) + `\n\n(Offline coach — live AI unavailable.)`; }
+  }
+  return offlineCoachReply(q, result);
+}
+function CoachView({ results, settings, go }) {
+  const latest = useMemo(() => { const e = results.filter((r) => r.kind === "exam"); return e.length ? e[e.length - 1] : null; }, [results]);
+  const [msgs, setMsgs] = useState([{ role: "coach", text: latest ? `Hi! I'm your AI coach. Your latest attempt (${latest.setTitle.split("—")[1] ? latest.setTitle.split("—")[1].trim() : latest.setTitle}) scored ${latest.overall}%. Ask me how to improve, or tap a suggestion below.` : "Hi! I'm your AI coach. Ask me about grammar, vocabulary, reading, email writing, situational judgment, typing, or chat handling. Take a practice set and I'll tailor advice to your results." }]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const endRef = useRef(null);
+  useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
+  const send = async (text) => {
+    const q = (text != null ? text : input).trim();
+    if (!q || busy) return;
+    setInput(""); setMsgs((m) => [...m, { role: "user", text: q }]); setBusy(true);
+    const hist = msgs.filter((m) => m.role !== "coach" || true).map((m) => ({ role: m.role === "user" ? "user" : "coach", text: m.text }));
+    const reply = await coachReply(q, hist, latest, settings);
+    setMsgs((m) => [...m, { role: "coach", text: reply }]); setBusy(false);
+  };
+  const suggestions = ["How do I improve my grammar?", "Give me a study plan", "Tips for handling angry customers", "How can I type faster?"];
+
+  return (
+    <PageHeader title="AI Coach" icon="brain" go={go}>
+      <Card pad={false} className="flex flex-col h-[68vh]">
+        <div className="flex-1 overflow-auto p-4 space-y-3">
+          {msgs.map((m, i) => (
+            <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : ""}`}>
+              {m.role !== "user" && <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 grid place-items-center shrink-0"><Icon name="brain" size={16} /></div>}
+              <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl whitespace-pre-wrap leading-relaxed text-sm ${m.role === "user" ? "bg-sky-600 text-white rounded-br-md" : "bg-slate-100 text-slate-700 rounded-bl-md"}`}>{m.text}</div>
+            </div>
+          ))}
+          {busy && <div className="flex gap-2.5"><div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 grid place-items-center"><Icon name="brain" size={16} /></div><div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-md flex gap-1"><span className="w-2 h-2 bg-slate-400 rounded-full bpo-pulse" /><span className="w-2 h-2 bg-slate-400 rounded-full bpo-pulse" style={{ animationDelay: ".2s" }} /><span className="w-2 h-2 bg-slate-400 rounded-full bpo-pulse" style={{ animationDelay: ".4s" }} /></div></div>}
+          <div ref={endRef} />
+        </div>
+        <div className="border-t border-slate-100 p-3">
+          <div className="flex gap-1.5 flex-wrap mb-2">{suggestions.map((s) => <button key={s} onClick={() => send(s)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">{s}</button>)}</div>
+          <div className="flex gap-2">
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask your coach anything…" className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+            <Btn variant="primary" icon="send" onClick={() => send()} disabled={busy || !input.trim()}>Send</Btn>
+          </div>
+        </div>
+      </Card>
+    </PageHeader>
+  );
+}
+
+/* ============================================================
+   VIEW — TYPING TEST (real WPM + accuracy)
+   ============================================================ */
+function TypingView({ settings, results, onSaveTyping, go }) {
+  const [passage, setPassage] = useState(() => pick(TYPING_PASSAGES));
+  const [input, setInput] = useState("");
+  const [phase, setPhase] = useState("idle"); // idle | running | done
+  const [start, setStart] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [result, setResult] = useState(null);
+  const areaRef = useRef(null);
+  const best = useMemo(() => { const t = results.filter((r) => r.kind === "typing"); return t.length ? Math.max(...t.map((r) => r.wpm)) : null; }, [results]);
+
+  const stats = useMemo(() => {
+    const typed = input.length;
+    let correct = 0;
+    for (let i = 0; i < typed; i++) if (input[i] === passage[i]) correct++;
+    const mins = Math.max(elapsed, 0.05) / 60;
+    const wpm = Math.round((correct / 5) / mins) || 0;
+    const gross = Math.round((typed / 5) / mins) || 0;
+    const accuracy = typed ? Math.round((correct / typed) * 100) : 100;
+    return { typed, correct, wpm, gross, accuracy, errors: typed - correct };
+  }, [input, elapsed, passage]);
+
+  useInterval(() => { if (phase === "running" && start) setElapsed((Date.now() - start) / 1000); }, phase === "running" ? 200 : null);
+
+  const finish = useCallback(() => {
+    setPhase("done");
+    const rec = { id: uid(), kind: "typing", ts: Date.now(), wpm: stats.wpm, accuracy: stats.accuracy, errors: stats.errors, seconds: Math.round(elapsed), chars: stats.typed };
+    setResult(rec); onSaveTyping(rec);
+  }, [stats, elapsed, onSaveTyping]);
+
+  const onChange = (e) => {
+    if (phase === "done") return;
+    const val = e.target.value;
+    if (phase === "idle" && val.length > 0) { setPhase("running"); setStart(Date.now()); }
+    if (val.length >= passage.length) { setInput(passage.slice(0)); setTimeout(() => finishWith(passage.slice(0)), 0); return; }
+    setInput(val);
+  };
+  const finishWith = (finalInput) => {
+    // recompute with final input synchronously
+    let correct = 0; for (let i = 0; i < finalInput.length; i++) if (finalInput[i] === passage[i]) correct++;
+    const secs = start ? (Date.now() - start) / 1000 : elapsed;
+    const mins = Math.max(secs, 0.05) / 60;
+    const wpm = Math.round((correct / 5) / mins) || 0;
+    const accuracy = finalInput.length ? Math.round((correct / finalInput.length) * 100) : 100;
+    setElapsed(secs); setPhase("done");
+    const rec = { id: uid(), kind: "typing", ts: Date.now(), wpm, accuracy, errors: finalInput.length - correct, seconds: Math.round(secs), chars: finalInput.length };
+    setResult(rec); onSaveTyping(rec);
+  };
+  const reset = (newPassage) => {
+    setPassage(newPassage || passage); setInput(""); setPhase("idle"); setStart(null); setElapsed(0); setResult(null);
+    setTimeout(() => areaRef.current && areaRef.current.focus(), 30);
+  };
+
+  return (
+    <PageHeader title="Typing Test" icon="keyboard" go={go} badge={best != null ? <Badge tone="emerald"><Icon name="trophy" size={11} />Best {best} WPM</Badge> : null}>
+      <div className="grid lg:grid-cols-3 gap-4 mb-4">
+        <Card><StatTile icon="zap" tone="sky" value={phase === "done" && result ? result.wpm : stats.wpm} label="Words per minute" /></Card>
+        <Card><StatTile icon="target" tone="emerald" value={(phase === "done" && result ? result.accuracy : stats.accuracy) + "%"} label="Accuracy" /></Card>
+        <Card><StatTile icon="clock" tone="amber" value={fmtClock(phase === "done" && result ? result.seconds : elapsed)} label="Time" sub={stats.errors + " errors"} /></Card>
+      </div>
+
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icon name="book" size={18} className="text-sky-600" />Type the passage below</h3>
+          <Btn variant="outline" size="sm" icon="refresh" onClick={() => reset(pick(TYPING_PASSAGES))}>New passage</Btn>
+        </div>
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 leading-loose text-[17px] font-mono select-none tracking-tight">
+          {passage.split("").map((ch, i) => {
+            let cls = "text-slate-400";
+            if (i < input.length) cls = input[i] === ch ? "text-emerald-600" : "text-rose-600 bg-rose-100 rounded";
+            else if (i === input.length && phase !== "done") cls = "text-slate-700 border-b-2 border-sky-500";
+            return <span key={i} className={cls}>{ch}</span>;
+          })}
+        </div>
+        {phase !== "done" ? (
+          <textarea ref={areaRef} value={input} onChange={onChange} onPaste={(e) => e.preventDefault()} autoFocus spellCheck={false} autoComplete="off"
+            placeholder="Click here and start typing… the timer starts on your first keystroke."
+            className="mt-3 w-full min-h-[120px] rounded-xl border border-slate-200 p-4 font-mono text-slate-700 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 resize-none" />
+        ) : (
+          <div className="mt-4 p-5 rounded-xl bg-gradient-to-br from-emerald-50 to-sky-50 border border-emerald-100 text-center bpo-pop">
+            <Icon name="trophy" size={28} className="text-emerald-500 mx-auto" />
+            <div className="text-3xl font-extrabold text-slate-800 mt-2">{result.wpm} WPM <span className="text-lg text-slate-400 font-bold">· {result.accuracy}% acc</span></div>
+            <div className="text-sm text-slate-500 mt-1">{result.wpm >= 45 ? "Excellent — above typical BPO hiring benchmarks (35–40 WPM)." : result.wpm >= 30 ? "Solid pace — keep practicing toward 40+ WPM." : "Keep practicing — aim for accuracy first, speed will follow."}{best != null && result.wpm > best ? " 🎉 New personal best!" : ""}</div>
+            <div className="flex gap-2 justify-center mt-4"><Btn variant="primary" icon="refresh" onClick={() => reset(pick(TYPING_PASSAGES))}>Try again</Btn><Btn variant="outline" icon="trending" onClick={() => go("progress")}>View progress</Btn></div>
+          </div>
+        )}
+        {phase === "running" && <div className="mt-3 text-right"><Btn variant="soft" size="sm" icon="check" onClick={() => finishWith(input)}>Finish now</Btn></div>}
+      </Card>
+    </PageHeader>
+  );
+}
+
+/* ============================================================
+   VIEW — CHAT SIMULATOR
+   ============================================================ */
+function ChatView({ settings, go }) {
+  const [scenario, setScenario] = useState(null);
+  const [msgs, setMsgs] = useState([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState({ done: false, score: 0, hits: { empathy: false, action: false, close: false } });
+  const endRef = useRef(null);
+  useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
+
+  const startScenario = (sc) => { setScenario(sc); setMsgs([{ role: "customer", text: sc.opening }]); setState({ done: false, score: 0, hits: { empathy: false, action: false, close: false } }); };
+  const send = async () => {
+    const q = input.trim(); if (!q || busy || state.done) return;
+    setInput(""); const newMsgs = [...msgs, { role: "user", text: q }]; setMsgs(newMsgs); setBusy(true);
+    const hist = msgs.map((m) => ({ role: m.role === "user" ? "user" : "customer", text: m.text }));
+    await new Promise((r) => setTimeout(r, 500));
+    const res = await getCustomerReply(scenario, hist, q, settings);
+    setState({ done: res.done, score: res.score, hits: res.hits });
+    setMsgs([...newMsgs, { role: "customer", text: res.reply }]);
+    setBusy(false);
+  };
+
+  if (!scenario) {
+    return (
+      <PageHeader title="Chat Simulator" icon="chat" go={go}>
+        <p className="text-slate-500 mb-4 text-sm">Handle a simulated customer chat. You play the agent; the system plays the customer. You're scored on empathy, action, and a proper close.</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {CHAT_SCENARIOS.map((sc) => (
+            <button key={sc.id} onClick={() => startScenario(sc)} className="text-left bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-4">
+              <div className="flex items-center justify-between"><Badge tone="sky"><Icon name="headset" size={11} />{sc.persona}</Badge><Badge tone="slate">{sc.difficulty}</Badge></div>
+              <h4 className="font-bold text-slate-800 mt-2.5">{sc.title}</h4>
+              <p className="text-sm text-slate-500 mt-1">{sc.brief}</p>
+              <div className="mt-3 text-sky-600 text-sm font-semibold inline-flex items-center gap-1">Start chat <Icon name="arrowRight" size={14} /></div>
+            </button>
+          ))}
+        </div>
+      </PageHeader>
+    );
+  }
+  const signalBadge = (on, label) => <span className={`text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${on ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}><Icon name={on ? "check" : "x"} size={11} />{label}</span>;
+  return (
+    <PageHeader title="Chat Simulator" icon="chat" go={go}>
+      <div className="grid lg:grid-cols-[1fr_260px] gap-4">
+        <Card pad={false} className="flex flex-col h-[68vh]">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-slate-200 grid place-items-center text-slate-500"><Icon name="user" size={18} /></div>
+            <div><div className="font-bold text-slate-800 text-sm">{scenario.persona}</div><div className="text-xs text-slate-400">{scenario.title}</div></div>
+            <button onClick={() => setScenario(null)} className="ml-auto text-sm text-slate-400 hover:text-slate-700 inline-flex items-center gap-1"><Icon name="left" size={15} />Scenarios</button>
+          </div>
+          <div className="flex-1 overflow-auto p-4 space-y-3">
+            {msgs.map((m, i) => (
+              <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : ""}`}>
+                {m.role !== "user" && <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-500 grid place-items-center shrink-0"><Icon name="user" size={15} /></div>}
+                <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl leading-relaxed text-sm ${m.role === "user" ? "bg-sky-600 text-white rounded-br-md" : "bg-slate-100 text-slate-700 rounded-bl-md"}`}>{m.text}</div>
+              </div>
+            ))}
+            {busy && <div className="flex gap-2.5"><div className="w-8 h-8 rounded-full bg-slate-200 text-slate-500 grid place-items-center"><Icon name="user" size={15} /></div><div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-md flex gap-1"><span className="w-2 h-2 bg-slate-400 rounded-full bpo-pulse" /><span className="w-2 h-2 bg-slate-400 rounded-full bpo-pulse" style={{ animationDelay: ".2s" }} /><span className="w-2 h-2 bg-slate-400 rounded-full bpo-pulse" style={{ animationDelay: ".4s" }} /></div></div>}
+            {state.done && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-center bpo-pop">
+                <Icon name="checkCircle" size={26} className="text-emerald-500 mx-auto" />
+                <div className="font-bold text-slate-800 mt-1">Customer resolved! Handling score: {state.score}/100</div>
+                <div className="text-sm text-slate-500 mt-0.5">{state.score >= 80 ? "Outstanding customer handling." : state.score >= 60 ? "Good job — add a clearer close next time." : "Resolved, but aim for more empathy and a firm next step."}</div>
+                <Btn variant="primary" size="sm" className="mt-3" icon="refresh" onClick={() => startScenario(scenario)}>Replay</Btn>
+              </div>
+            )}
+            <div ref={endRef} />
+          </div>
+          <div className="border-t border-slate-100 p-3 flex gap-2">
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={state.done} placeholder={state.done ? "Chat ended — replay to try again" : "Type your reply as the agent…"} className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 disabled:bg-slate-50" />
+            <Btn variant="primary" icon="send" onClick={send} disabled={busy || state.done || !input.trim()}>Send</Btn>
+          </div>
+        </Card>
+        <div className="space-y-4">
+          <Card>
+            <div className="font-bold text-slate-800 text-sm mb-2">Live signals</div>
+            <div className="flex flex-col gap-2">{signalBadge(state.hits.empathy, "Empathy shown")}{signalBadge(state.hits.action, "Action / solution offered")}{signalBadge(state.hits.close, "Closing / next step")}</div>
+          </Card>
+          <Card>
+            <div className="font-bold text-slate-800 text-sm mb-2 flex items-center gap-1.5"><Icon name="target" size={15} className="text-indigo-500" />Your objectives</div>
+            <ul className="space-y-1.5 text-sm text-slate-600">{scenario.goal.map((g, i) => <li key={i} className="flex gap-2"><Icon name="arrowRight" size={14} className="text-sky-500 mt-0.5 shrink-0" />{g}</li>)}</ul>
+          </Card>
+        </div>
+      </div>
+    </PageHeader>
+  );
+}
+
+/* ============================================================
+   VIEW — PROGRESS TRACKER
+   ============================================================ */
+function ProgressView({ results, go }) {
+  const exam = useMemo(() => results.filter((r) => r.kind === "exam").sort((a, b) => a.ts - b.ts), [results]);
+  const typing = useMemo(() => results.filter((r) => r.kind === "typing").sort((a, b) => a.ts - b.ts), [results]);
+  const examPoints = exam.map((r, i) => ({ label: "#" + (i + 1), value: r.overall }));
+  const typingPoints = typing.map((r, i) => ({ label: "#" + (i + 1), value: r.wpm }));
+
+  return (
+    <PageHeader title="Progress Tracker" icon="trending" go={go}>
+      {!exam.length && !typing.length ? (
+        <Card><Empty icon="trending" title="No history yet" sub="Take an exam or a typing test to start tracking progress." /><div className="text-center"><Btn icon="play" onClick={() => go("dashboard")}>Get started</Btn></div></Card>
+      ) : (
+        <div className="space-y-5">
+          {exam.length > 0 && (
+            <Card>
+              <h3 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Icon name="chart" size={18} className="text-sky-600" />Exam score trend</h3>
+              <p className="text-xs text-slate-400 mb-2">Overall % across {exam.length} attempt{exam.length > 1 ? "s" : ""}</p>
+              <LineTrend points={examPoints} yMax={100} />
+            </Card>
+          )}
+          {typing.length > 0 && (
+            <Card>
+              <h3 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Icon name="keyboard" size={18} className="text-emerald-600" />Typing speed trend</h3>
+              <p className="text-xs text-slate-400 mb-2">WPM across {typing.length} test{typing.length > 1 ? "s" : ""}</p>
+              <LineTrend points={typingPoints} yMax={Math.max(80, ...typing.map((t) => t.wpm + 10))} />
+            </Card>
+          )}
+          {exam.length > 0 && (
+            <Card pad={false}>
+              <div className="p-5 pb-3"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icon name="list" size={18} className="text-indigo-600" />Attempt history</h3></div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left text-slate-400 border-y border-slate-100 text-xs uppercase tracking-wide"><th className="px-5 py-2 font-semibold">Date</th><th className="px-5 py-2 font-semibold">Set</th><th className="px-5 py-2 font-semibold">Score</th><th className="px-5 py-2 font-semibold">Result</th><th className="px-5 py-2 font-semibold">Time</th></tr></thead>
+                  <tbody>
+                    {[...exam].reverse().map((r) => (
+                      <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50">
+                        <td className="px-5 py-2.5 text-slate-500 whitespace-nowrap">{fmtDate(r.ts)}</td>
+                        <td className="px-5 py-2.5 text-slate-700 font-medium">{r.setTitle.split("—")[1] ? r.setTitle.split("—")[1].trim() : r.setTitle}</td>
+                        <td className={"px-5 py-2.5 font-bold tabular " + bandText(r.overall)}>{r.overall}%</td>
+                        <td className="px-5 py-2.5">{r.pass ? <Badge tone="emerald"><Icon name="check" size={11} />Pass</Badge> : <Badge tone="rose"><Icon name="x" size={11} />Below</Badge>}</td>
+                        <td className="px-5 py-2.5 text-slate-500 tabular whitespace-nowrap">{Math.floor(r.durationSec / 60)}m {r.durationSec % 60}s</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+    </PageHeader>
+  );
+}
+
+/* Shared page header for sub-views */
+function PageHeader({ title, icon, go, badge, children }) {
+  return (
+    <div className="bpo-fade">
+      <div className="flex items-center gap-3 mb-5">
+        <button onClick={() => go("dashboard")} className="w-9 h-9 rounded-xl bg-white border border-slate-200 grid place-items-center text-slate-500 hover:text-slate-800 hover:bg-slate-50 shadow-sm"><Icon name="left" size={18} /></button>
+        <div className="w-10 h-10 rounded-xl bg-slate-900 text-white grid place-items-center"><Icon name={icon} size={20} /></div>
+        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800">{title}</h1>
+        {badge && <div className="ml-auto">{badge}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ============================================================
+   SETTINGS MODAL
+   ============================================================ */
+function AppSettings({ open, onClose, settings, onSave, onClearData }) {
+  const [form, setForm] = useState(settings);
+  useEffect(() => { setForm(settings); }, [settings, open]);
+  const upd = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  return (
+    <Modal open={open} onClose={onClose} title="Settings" icon="settings" maxW="max-w-xl">
+      <div className="space-y-5">
+        <div>
+          <label className="text-sm font-semibold text-slate-700">Candidate name</label>
+          <input value={form.candidate} onChange={(e) => upd("candidate", e.target.value)} placeholder="Your name"
+            className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-slate-700">Pass mark: <span className="text-sky-600 font-bold">{form.passMark}%</span></label>
+          <input type="range" min="50" max="90" value={form.passMark} onChange={(e) => upd("passMark", Number(e.target.value))} className="mt-2 w-full accent-sky-600" />
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <button onClick={onClearData} className="text-sm font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center gap-1.5"><Icon name="alert" size={15} />Clear all data</button>
+          <div className="flex gap-2">
+            <Btn variant="outline" onClick={onClose}>Cancel</Btn>
+            <Btn variant="primary" icon="check" onClick={() => onSave(form)}>Save settings</Btn>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ============================================================
+   ERROR BOUNDARY
+   ============================================================ */
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  render() {
+    if (this.state.err) {
+      return (
+        <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded-2xl border border-rose-200 shadow text-center">
+          <Icon name="alert" size={30} className="text-rose-500 mx-auto" />
+          <h2 className="font-bold text-slate-800 mt-2">Something went wrong</h2>
+          <p className="text-sm text-slate-500 mt-1">{String(this.state.err.message || this.state.err)}</p>
+          <button onClick={() => location.reload()} className="mt-4 px-4 py-2 rounded-xl bg-sky-600 text-white font-semibold">Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ============================================================
+   APP
+   ============================================================ */
+const NAV = [
+  { view: "dashboard", icon: "dashboard", label: "Dashboard" },
+  { view: "analysis", icon: "chart", label: "Analysis" },
+  { view: "progress", icon: "trending", label: "Progress" },
+  { view: "coach", icon: "brain", label: "AI Coach" },
+];
+function App() {
+  const [view, setView] = useState("dashboard");
+  const [settings, setSettings] = useState(loadSettings);
+  const [results, setResults] = useState(loadResults);
+  const [active, setActive] = useState(loadActive);
+  const [exam, setExam] = useState(null); // { set, restored, key }
+  const [result, setResult] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  useEffect(() => { const b = document.getElementById("boot"); if (b) b.remove(); }, []);
+  useEffect(() => { if (!settings.candidate) setSettingsOpen(true); }, []); // first-run prompt
+
+  const go = (v) => { setView(v); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const startSet = (set) => { setExam({ set, restored: null, key: uid() }); go("exam"); };
+  const resume = () => {
+    if (!active) return;
+    const set = SETS.find((s) => s.id === active.setId);
+    setExam({ set, restored: active, key: "resume-" + active.startedAt }); go("exam");
+  };
+  const finishExam = (record) => {
+    setResults(appendResult(record));
+    setActive(null); setExam(null); setResult(record); go("result");
+  };
+  const exitExam = () => { setActive(loadActive()); setExam(null); go("dashboard"); };
+  const saveSettingsHandler = (form) => { saveSettings(form); setSettings(form); setSettingsOpen(false); };
+  const doClear = () => { clearResults(); clearActive(); setResults([]); setActive(null); setConfirmClear(false); setSettingsOpen(false); go("dashboard"); };
+  const saveTyping = (rec) => setResults(appendResult(rec));
+
+  const isExam = view === "exam";
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-full">
+        {!isExam && (
+          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+              <button onClick={() => go("dashboard")} className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 grid place-items-center text-white shadow-sm"><Icon name="headset" size={20} /></div>
+                <div className="text-left leading-none">
+                  <div className="font-extrabold text-slate-800 tracking-tight">Vox<span className="text-sky-600">prep</span></div>
+                  <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">BPO Exam Practice</div>
+                </div>
+              </button>
+              <nav className="ml-4 hidden md:flex items-center gap-1">
+                {NAV.map((n) => (
+                  <button key={n.view} onClick={() => go(n.view)}
+                    className={`px-3 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition ${view === n.view ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}>
+                    <Icon name={n.icon} size={16} />{n.label}
+                  </button>
+                ))}
+              </nav>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => setSettingsOpen(true)} className="w-9 h-9 rounded-xl grid place-items-center text-slate-500 hover:bg-slate-100"><Icon name="settings" size={19} /></button>
+                <div className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-500 font-bold text-sm" title={settings.candidate || "Candidate"}>{(settings.candidate || "C").trim().charAt(0).toUpperCase()}</div>
+              </div>
+            </div>
+            {/* mobile nav */}
+            <div className="md:hidden border-t border-slate-100 px-2 py-1.5 flex gap-1 overflow-x-auto">
+              {NAV.map((n) => (
+                <button key={n.view} onClick={() => go(n.view)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap ${view === n.view ? "bg-slate-900 text-white" : "text-slate-500"}`}><Icon name={n.icon} size={14} />{n.label}</button>
+              ))}
+            </div>
+          </header>
+        )}
+
+        <main className={`max-w-7xl mx-auto px-4 sm:px-6 ${isExam ? "py-0" : "py-6"}`}>
+          {view === "dashboard" && <Dashboard settings={settings} results={results} active={active} go={go} onStartSet={startSet} onResume={resume} onOpenSettings={() => setSettingsOpen(true)} />}
+          {view === "exam" && exam && <ExamView key={exam.key} set={exam.set} restoredState={exam.restored} settings={settings} onFinish={finishExam} onExit={exitExam} />}
+          {view === "result" && result && <ResultView result={result} settings={settings} go={go} onRetake={(setId) => startSet(SETS.find((s) => s.id === setId))} onBack={() => go("dashboard")} />}
+          {view === "analysis" && <AnalysisView results={results} settings={settings} go={go} />}
+          {view === "coach" && <CoachView results={results} settings={settings} go={go} />}
+          {view === "typing" && <TypingView settings={settings} results={results} onSaveTyping={saveTyping} go={go} />}
+          {view === "chat" && <ChatView settings={settings} go={go} />}
+          {view === "progress" && <ProgressView results={results} go={go} />}
+          {view === "result" && !result && <Empty icon="info" title="No result to show" />}
+        </main>
+
+        <AppSettings open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onSave={saveSettingsHandler} onClearData={() => setConfirmClear(true)} />
+        <Modal open={confirmClear} onClose={() => setConfirmClear(false)} title="Clear all data?" icon="alert">
+          <p className="text-slate-600">This permanently deletes all saved results, typing history, and in-progress exams from this browser.</p>
+          <div className="flex gap-2 justify-end mt-4"><Btn variant="outline" onClick={() => setConfirmClear(false)}>Cancel</Btn><Btn variant="danger" icon="alert" onClick={doClear}>Delete everything</Btn></div>
+        </Modal>
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
