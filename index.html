@@ -484,46 +484,183 @@ const CHAT_SCENARIOS = [
     keywords: { empathy: ["understand", "sorry", "value", "feedback"], action: ["offer", "discount", "feature", "plan", "help"], close: ["stay", "keep", "decision", "respect", "anything"] } },
 ];
 
-// ---- 20 Practice Sets across 3 tiers ----
+// ---- 30 Practice Sets across 3 phases (hard / harder / hardest) ----
 const TIERS = {
-  1: { name: "Foundation", color: "emerald", desc: "Core English, grammar, vocabulary & basic email", minutes: 60 },
-  2: { name: "Proficiency", color: "sky", desc: "Business communication, comprehension & judgment", minutes: 75 },
-  3: { name: "Mastery", color: "indigo", desc: "Advanced, high-stakes Versant-Pro level assessment", minutes: 90 },
+  1: { name: "Foundation", color: "emerald", desc: "Phase 1 · Hard — core grammar, vocabulary & comprehension", minutes: 50 },
+  2: { name: "Proficiency", color: "sky", desc: "Phase 2 · Harder — advanced usage, inference & judgment", minutes: 60 },
+  3: { name: "Mastery", color: "indigo", desc: "Phase 3 · Hardest — SSC / Versant-Pro level rigor", minutes: 75 },
 };
-const SET_TITLES = [
-  // Tier 1 (1-7)
-  "Core Grammar Essentials", "Everyday Vocabulary", "Reading for Detail", "Professional Email Basics",
-  "Customer Scenarios", "Grammar & Usage", "Foundation Checkpoint",
-  // Tier 2 (8-14)
-  "Advanced Grammar", "Business Vocabulary", "Comprehension & Inference", "Email Etiquette",
-  "Situational Judgment", "Mixed Skills", "Proficiency Checkpoint",
-  // Tier 3 (15-20)
-  "Complex Grammar", "Precision Vocabulary", "Critical Reading", "Executive Communication",
-  "High-Stakes Scenarios", "Versant-Pro Final",
+
+/* ============================================================
+   GENERATOR BANK — compact seeds expanded into many unique items.
+   Each generated item: { q, options[], answer, explain, diff(1-3) }.
+   The correct answer is randomized across A–D at exam-build time.
+   EXPANDABLE: add rows to any seed list to grow the pool.
+   ============================================================ */
+// Vocabulary dictionary: [word, meaning, synonym, antonym, diff]
+const WORDS = [
+  ["abate", "to lessen or reduce", "diminish", "intensify", 2], ["candid", "frank and honest", "forthright", "evasive", 2],
+  ["lucid", "clear and easy to understand", "coherent", "obscure", 2], ["prudent", "acting with care", "judicious", "reckless", 2],
+  ["benevolent", "kind and generous", "magnanimous", "cruel", 2], ["frugal", "careful with money", "thrifty", "wasteful", 2],
+  ["verbose", "using too many words", "long-winded", "concise", 3], ["mitigate", "to make less severe", "alleviate", "aggravate", 3],
+  ["augment", "to increase", "amplify", "reduce", 3], ["reticent", "reserved, not revealing thoughts", "taciturn", "talkative", 3],
+  ["tenacious", "holding firmly, persistent", "dogged", "yielding", 3], ["ambiguous", "open to more than one meaning", "equivocal", "explicit", 3],
+  ["diligent", "hard-working", "industrious", "lazy", 2], ["arduous", "difficult and tiring", "strenuous", "effortless", 2],
+  ["placate", "to soothe or pacify", "appease", "provoke", 3], ["scrutinize", "to examine closely", "inspect", "overlook", 2],
+  ["spontaneous", "done without planning", "impromptu", "premeditated", 3], ["meticulous", "very careful about detail", "fastidious", "careless", 3],
+  ["transient", "lasting a short time", "fleeting", "permanent", 3], ["cordial", "warm and friendly", "genial", "hostile", 1],
+  ["deter", "to discourage", "dissuade", "encourage", 2], ["vivid", "bright and clear", "vibrant", "dull", 1],
+  ["abundant", "present in great quantity", "ample", "scarce", 1], ["rigid", "stiff, not flexible", "inflexible", "pliable", 1],
+  ["hasten", "to hurry", "accelerate", "delay", 1], ["humble", "modest", "unassuming", "arrogant", 1],
+  ["genuine", "real, authentic", "authentic", "counterfeit", 1], ["trivial", "of little importance", "petty", "significant", 2],
+  ["hostile", "unfriendly", "antagonistic", "amicable", 2], ["conceal", "to hide", "cover", "reveal", 1],
+  ["vague", "not clearly expressed", "hazy", "definite", 2], ["prosper", "to thrive", "flourish", "decline", 2],
+  ["reluctant", "unwilling", "hesitant", "eager", 2], ["eloquent", "fluent and persuasive", "articulate", "inarticulate", 3],
+  ["obstinate", "stubborn", "headstrong", "compliant", 3], ["lethargic", "lacking energy", "sluggish", "energetic", 3],
 ];
-function blueprintFor(tier, isCheckpoint) {
-  const base = {
-    1: { grammar: 4, vocab: 4, reading: 3, sjt: 2, email: 1 },
-    2: { grammar: 5, vocab: 4, reading: 3, sjt: 3, email: 1 },
-    3: { grammar: 5, vocab: 5, reading: 3, sjt: 3, email: 1 },
-  }[tier];
-  if (isCheckpoint) return { grammar: base.grammar + 1, vocab: base.vocab + 1, reading: base.reading, sjt: base.sjt + 1, email: 1 };
-  return base;
+const _words = WORDS.map((w) => w[0]); const _means = WORDS.map((w) => w[1]);
+function genVocab() {
+  const out = [];
+  WORDS.forEach(([w, mean, syn, ant, diff]) => {
+    out.push({ q: `Select the word most SIMILAR in meaning to “${w}”.`, options: [syn, ...sample(_words.filter((x) => x !== w && x !== syn), 3)], answer: 0, explain: `“${w}” means ${mean}; the closest synonym is “${syn}”.`, diff });
+    if (ant) out.push({ q: `Select the word most OPPOSITE in meaning to “${w}”.`, options: [ant, ...sample(_words.filter((x) => x !== w && x !== ant), 3)], answer: 0, explain: `“${w}” means ${mean}; its antonym is “${ant}”.`, diff });
+    out.push({ q: `What does “${w}” most nearly mean?`, options: [mean, ...sample(_means.filter((m) => m !== mean), 3)], answer: 0, explain: `“${w}” means ${mean}.`, diff });
+  });
+  return out;
 }
-const SETS = SET_TITLES.map((title, i) => {
+// Idioms: [idiom, meaning, diff]
+const IDIOMS = [
+  ["a blessing in disguise", "a good thing that seemed bad at first", 2], ["once in a blue moon", "very rarely", 1],
+  ["bite the bullet", "to endure a painful situation bravely", 2], ["the ball is in your court", "it is your decision now", 2],
+  ["hit the nail on the head", "to describe exactly what is causing a situation", 2], ["let the cat out of the bag", "to reveal a secret carelessly", 2],
+  ["burn the midnight oil", "to work late into the night", 2], ["a piece of cake", "something very easy", 1],
+  ["cut corners", "to do something cheaply or poorly to save effort", 2], ["under the weather", "feeling slightly ill", 1],
+  ["cost an arm and a leg", "to be very expensive", 2], ["beat around the bush", "to avoid talking about the main point", 2],
+  ["on the same page", "to be in agreement", 1], ["throw in the towel", "to give up", 2], ["a hard nut to crack", "a difficult problem or person", 3],
+];
+const _idiomMeans = IDIOMS.map((x) => x[1]);
+function genIdiom() { return IDIOMS.map(([id, mean, diff]) => ({ q: `What does the idiom “${id}” mean?`, options: [mean, ...sample(_idiomMeans.filter((m) => m !== mean), 3)], answer: 0, explain: `“${id}” means: ${mean}.`, diff })); }
+// Spelling: [correct, [wrong1,wrong2,wrong3], diff]
+const SPELL = [
+  ["accommodate", ["acommodate", "accomodate", "acomodate"], 2], ["definitely", ["definately", "definatly", "defenitely"], 1],
+  ["separate", ["seperate", "seperete", "saparate"], 1], ["occurrence", ["occurence", "ocurrence", "occurrance"], 3],
+  ["embarrass", ["embarass", "embaras", "embarras"], 2], ["privilege", ["priviledge", "privilage", "privelege"], 2],
+  ["maintenance", ["maintainance", "maintenence", "maintanance"], 2], ["recommend", ["reccomend", "recomend", "reccommend"], 1],
+  ["necessary", ["neccessary", "necesary", "neccesary"], 1], ["conscientious", ["consciencious", "conscientous", "conscienscious"], 3],
+  ["liaison", ["liason", "liaision", "liasion"], 3], ["rhythm", ["rythm", "rhythem", "rhytm"], 2],
+];
+function genSpell() { return SPELL.map(([c, w, diff]) => ({ q: "Choose the CORRECTLY spelled word.", options: [c, ...w], answer: 0, explain: `The correct spelling is “${c}”.`, diff })); }
+// Analogies: [q, [4 options], answerIdx, explain, diff]
+const ANALOGY = [
+  ["Doctor : Hospital :: Teacher : ?", ["School", "Court", "Garage", "Studio"], 0, "A doctor works in a hospital; a teacher works in a school.", 1],
+  ["Pen : Write :: Knife : ?", ["Cut", "Read", "Cook", "Paint"], 0, "Tool and its function.", 1],
+  ["Cub : Bear :: Calf : ?", ["Cow", "Dog", "Cat", "Goat"], 0, "Young one to adult animal.", 2],
+  ["Author : Book :: Composer : ?", ["Symphony", "Stage", "Brush", "Script"], 0, "Creator to creation.", 2],
+  ["Ocean : Drop :: Crowd : ?", ["Person", "Group", "Team", "Mob"], 0, "Whole to a single unit.", 3],
+  ["Glove : Hand :: Sock : ?", ["Foot", "Arm", "Head", "Knee"], 0, "Garment to body part.", 1],
+  ["Clock : Time :: Thermometer : ?", ["Temperature", "Speed", "Weight", "Pressure"], 0, "Instrument to what it measures.", 2],
+  ["Petal : Flower :: Spoke : ?", ["Wheel", "Car", "Road", "Chain"], 0, "Part to whole.", 2],
+  ["Sculptor : Statue :: Poet : ?", ["Poem", "Song", "Story", "Play"], 0, "Creator to creation.", 2],
+  ["Light : Blind :: Sound : ?", ["Deaf", "Mute", "Numb", "Dumb"], 0, "Sense whose loss is named.", 3],
+  ["Water : Thirst :: Food : ?", ["Hunger", "Drink", "Sleep", "Rest"], 0, "Remedy to need.", 1],
+  ["Teacher : Pupil :: Master : ?", ["Servant", "Owner", "King", "Guest"], 0, "Hierarchical pair.", 2],
+];
+function genAnalogy() { return ANALOGY.map(([q, o, a, ex, diff]) => ({ q: `Complete the analogy — ${q}`, options: o, answer: a, explain: ex, diff })); }
+// Fill in the blank (grammar): [sentence, correct, [d1,d2,d3], explain, diff]
+const FILL = [
+  ["She is good ___ mathematics.", "at", ["in", "on", "with"], "‘good at’ is the correct collocation.", 1],
+  ["He has lived here ___ ten years.", "for", ["since", "from", "by"], "‘for’ + a duration of time.", 1],
+  ["The report must be submitted ___ Friday.", "by", ["till", "until", "in"], "‘by’ = no later than a point in time.", 2],
+  ["Neither of the boys ___ present.", "was", ["were", "are", "have"], "‘Neither of’ takes a singular verb.", 3],
+  ["If I ___ you, I would apologize.", "were", ["was", "am", "be"], "Subjunctive mood: ‘If I were you’.", 3],
+  ["She insisted ___ paying the bill.", "on", ["in", "at", "for"], "‘insist on’ + gerund.", 2],
+  ["He is senior ___ me by two years.", "to", ["than", "from", "over"], "‘senior to’, never ‘senior than’.", 3],
+  ["I look forward ___ hearing from you.", "to", ["for", "at", "in"], "‘look forward to’ + gerund.", 2],
+  ["Hardly had he left ___ it started to rain.", "when", ["than", "then", "that"], "Correlative: ‘Hardly … when’.", 3],
+  ["She apologized ___ being late.", "for", ["of", "on", "to"], "‘apologize for’.", 1],
+  ["This is the book ___ I told you about.", "that", ["who", "whom", "what"], "Relative pronoun for a thing.", 2],
+  ["He prefers tea ___ coffee.", "to", ["than", "over", "from"], "‘prefer X to Y’.", 2],
+  ["Each of the students ___ a locker.", "has", ["have", "are", "were"], "‘Each’ is singular → ‘has’.", 3],
+  ["The news ___ very encouraging.", "is", ["are", "were", "have"], "‘news’ is an uncountable singular noun.", 2],
+  ["She is married ___ a doctor.", "to", ["with", "by", "for"], "‘married to’.", 2],
+  ["There is no point ___ arguing.", "in", ["of", "at", "for"], "‘no point in’ + gerund.", 3],
+  ["He is capable ___ doing it alone.", "of", ["to", "for", "in"], "‘capable of’.", 2],
+  ["The child is afraid ___ the dark.", "of", ["from", "with", "at"], "‘afraid of’.", 1],
+  ["Please refrain ___ smoking here.", "from", ["of", "to", "in"], "‘refrain from’.", 2],
+  ["We must abide ___ the rules.", "by", ["with", "to", "on"], "‘abide by’.", 3],
+  ["He was accused ___ theft.", "of", ["for", "with", "on"], "‘accused of’.", 2],
+  ["I congratulated her ___ her success.", "on", ["for", "at", "with"], "‘congratulate on’.", 2],
+  ["She is fond ___ classical music.", "of", ["for", "with", "to"], "‘fond of’.", 1],
+  ["The meeting was put ___ till Monday.", "off", ["on", "up", "out"], "‘put off’ = postpone.", 2],
+  ["He gave ___ smoking last year.", "up", ["off", "in", "out"], "‘give up’ = quit.", 2],
+  ["They have been friends ___ childhood.", "since", ["for", "from", "by"], "‘since’ + a point in time.", 1],
+  ["I am not used ___ waking up early.", "to", ["with", "for", "of"], "‘used to’ (accustomed) + gerund.", 3],
+  ["He succeeded ___ getting the contract.", "in", ["to", "at", "for"], "‘succeed in’ + gerund.", 2],
+];
+function genFill() { return FILL.map(([s, c, d, ex, diff]) => ({ q: `Fill in the blank: ${s}`, options: [c, ...d], answer: 0, explain: ex, diff })); }
+// Error spotting (SSC style): [[partA,partB,partC,partD], errIdx, explain, diff]
+const ERRORS = [
+  [["One of my friend", "is a doctor", "who lives", "in Mumbai."], 0, "‘One of my friends’ — plural noun after ‘one of’.", 2],
+  [["He is more intelligent", "than any boy", "in the", "class."], 1, "Use ‘any other boy’ when comparing within the same group.", 3],
+  [["The teacher as well as", "the students", "were present", "in the hall."], 2, "Subject ‘teacher’ is singular → ‘was present’.", 3],
+  [["I have been", "living here", "since five years", "now."], 2, "‘since’ → ‘for’ with a duration.", 2],
+  [["Each of the players", "have been given", "a separate", "jersey."], 1, "‘Each’ is singular → ‘has been given’.", 2],
+  [["He did not", "came to", "the office", "yesterday."], 1, "After ‘did not’, use the base verb ‘come’.", 1],
+  [["She is junior", "than me", "by three", "years."], 1, "‘junior to’, not ‘junior than’.", 2],
+  [["The quality", "of these mangoes", "are not", "good."], 2, "Subject ‘quality’ is singular → ‘is not’.", 2],
+  [["He prefers", "tea than coffee", "in the", "morning."], 1, "‘prefer X to Y’, not ‘than’.", 2],
+  [["Neither he", "nor his friends", "was able", "to solve it."], 2, "Verb agrees with the nearer subject ‘friends’ → ‘were’.", 3],
+  [["I am looking", "forward to", "meet you", "next week."], 2, "‘looking forward to meeting’ — gerund.", 2],
+  [["He is one", "of the best", "player", "in the team."], 2, "‘one of the best players’ — plural.", 2],
+  [["The number", "of students", "are increasing", "every year."], 2, "‘The number … is increasing’.", 3],
+  [["Hardly I had", "reached the station", "when the", "train left."], 0, "Inversion: ‘Hardly had I reached’.", 3],
+];
+function genError() { return ERRORS.map(([parts, idx, ex, diff]) => ({ q: "Identify the part that contains a grammatical error:", options: parts.map((p, i) => `(${String.fromCharCode(65 + i)}) ${p}`), answer: idx, explain: ex, diff })); }
+// Sentence improvement: [stem, [4 versions], answerIdx, explain, diff]
+const IMPROVE = [
+  ["He suggested to go for a walk.", ["He suggested going for a walk.", "He suggested to go for a walk.", "He suggested go for a walk.", "He suggested for going a walk."], 0, "‘suggest’ takes a gerund.", 2],
+  ["I look forward to meet you.", ["I look forward to meeting you.", "I look forward to meet you.", "I look forward meeting you.", "I look forward for meeting you."], 0, "‘look forward to’ + gerund.", 2],
+  ["He is the most cleverest boy.", ["He is the cleverest boy.", "He is the most cleverest boy.", "He is more cleverest boy.", "He is the much cleverest boy."], 0, "Avoid the double superlative.", 1],
+  ["The reason is because he was late.", ["The reason is that he was late.", "The reason is because he was late.", "The reason because he was late.", "The reason is why he was late."], 0, "‘The reason is that …’.", 3],
+  ["Each of the boys were given a prize.", ["Each of the boys was given a prize.", "Each of the boys were given a prize.", "Each of the boys have been given a prize.", "Each of the boy was given a prize."], 0, "‘Each’ → singular ‘was’.", 2],
+  ["He returned back home.", ["He returned home.", "He returned back home.", "He return back home.", "He returned back to home."], 0, "‘return’ already implies ‘back’.", 1],
+  ["I prefer coffee than tea.", ["I prefer coffee to tea.", "I prefer coffee than tea.", "I prefer coffee then tea.", "I prefer coffee over than tea."], 0, "‘prefer X to Y’.", 2],
+  ["Neither of the answers are correct.", ["Neither of the answers is correct.", "Neither of the answers are correct.", "Neither of the answer is correct.", "Neither of the answers were correct."], 0, "‘Neither’ → singular verb.", 3],
+  ["She did not went to school.", ["She did not go to school.", "She did not went to school.", "She does not went to school.", "She did not gone to school."], 0, "Base verb after ‘did’.", 1],
+  ["He insisted to pay the bill.", ["He insisted on paying the bill.", "He insisted to pay the bill.", "He insisted in paying the bill.", "He insisted for paying the bill."], 0, "‘insist on’ + gerund.", 2],
+  ["Less people came today.", ["Fewer people came today.", "Less people came today.", "Lesser people came today.", "Least people came today."], 0, "‘fewer’ for countable nouns.", 3],
+  ["He is married with a teacher.", ["He is married to a teacher.", "He is married with a teacher.", "He is marry to a teacher.", "He is married by a teacher."], 0, "‘married to’.", 2],
+];
+function genImprove() { return IMPROVE.map(([stem, o, a, ex, diff]) => ({ q: `Choose the best version — ${stem}`, options: o, answer: a, explain: ex, diff })); }
+
+const GEN_VOCAB = [...genVocab(), ...genIdiom(), ...genSpell(), ...genAnalogy()];
+const GEN_GRAMMAR = [...genFill(), ...genError(), ...genImprove()];
+// flatten reading passages into a sub-question pool
+const READING_SUBS = [];
+READING.forEach((p) => p.subs.forEach((sub) => READING_SUBS.push({ passageTitle: p.title, passage: p.passage, q: sub.q, options: sub.options, answer: sub.answer, explain: sub.explain, diff: p.diff })));
+// master pools per section (curated + generated)
+const SECTION_POOL = {
+  grammar: GRAMMAR.concat(GEN_GRAMMAR),
+  vocab: VOCAB.concat(GEN_VOCAB),
+  reading: READING_SUBS,
+  sjt: SJT,
+  email: EMAILS,
+};
+const BANK_TOTAL = Object.values(SECTION_POOL).reduce((s, a) => s + a.length, 0);
+
+const PAPER_TITLES = ["Grammar & Usage", "Vocabulary Power", "Reading & Inference", "Error Detection", "Sentence Mastery", "Idioms & Expressions", "Comprehension Drill", "Mixed English", "Rapid Round", "Phase Checkpoint"];
+const SETS = Array.from({ length: 30 }, (_, i) => {
   const n = i + 1;
-  const tier = n <= 7 ? 1 : n <= 14 ? 2 : 3;
-  const isCheckpoint = /Checkpoint|Final/.test(title);
-  const romanIdx = (tier === 1 ? n : tier === 2 ? n - 7 : n - 14);
-  const roman = ["I", "II", "III", "IV", "V", "VI", "VII"][romanIdx - 1] || "";
-  const bp = blueprintFor(tier, isCheckpoint);
-  const totalQ = bp.grammar + bp.vocab + bp.reading + bp.sjt + bp.email;
+  const phase = n <= 10 ? 1 : n <= 20 ? 2 : 3;
+  const within = ((n - 1) % 10) + 1;
+  const isCheckpoint = within === 10;
+  const title = PAPER_TITLES[within - 1];
   return {
-    id: "set-" + n, n, tier, diff: tier, isCheckpoint,
-    title: `${TIERS[tier].name} ${roman} — ${title}`,
+    id: "set-" + n, n, tier: phase, diff: phase, isCheckpoint,
+    title: `${TIERS[phase].name} ${within} — ${title}`,
     shortTitle: title,
-    minutes: TIERS[tier].minutes + (isCheckpoint ? 10 : 0),
-    blueprint: bp, totalQ,
+    minutes: TIERS[phase].minutes + (isCheckpoint ? 15 : 0),
+    blueprint: { grammar: 18, vocab: 20, reading: 5, sjt: 4, email: 3 }, totalQ: 50,
   };
 });
 
@@ -549,33 +686,63 @@ const clearActive = () => { try { localStorage.removeItem(SKEYS.active); } catch
 /* ============================================================
    EXAM BUILDER — samples a question set from the bank
    ============================================================ */
-function pickByDiff(pool, diff, n) {
-  let elig = pool.filter((x) => x.diff <= diff);
-  if (elig.length < n) elig = pool; // fallback so sets always fill
-  return sample(elig, n);
+// deterministic shuffle so each paper is a stable, distinct set
+function seededShuffle(arr, seed) {
+  const a = [...arr]; let s = seed >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
 }
+// move the correct option to a random A–D position (fixes "answer always A")
+function randomizeOptions(options, answerIdx) {
+  const order = shuffle(options.map((_, i) => i));
+  return { options: order.map((i) => options[i]), answer: order.indexOf(answerIdx) };
+}
+function randomizeSJT(options, bestIdx) {
+  const order = shuffle(options.map((_, i) => i));
+  return { options: order.map((i) => options[i]), best: order.indexOf(bestIdx) };
+}
+// pick an eligible difficulty band for a phase, broadening until we have enough
+function eligiblePool(pool, phase, need) {
+  const bands = phase === 1 ? [[1, 2], [1, 2, 3]] : phase === 2 ? [[2, 3], [1, 2, 3]] : [[3], [2, 3], [1, 2, 3]];
+  for (const b of bands) { const e = pool.filter((x) => b.includes(x.diff || 2)); if (e.length >= need) return e; }
+  return pool;
+}
+const _order = {};
+function windowPick(section, phase, withinIdx, count) {
+  const pool = SECTION_POOL[section] || [];
+  const elig = eligiblePool(pool, phase, count);
+  const key = section + "-" + phase + "-" + elig.length;
+  if (!_order[key]) _order[key] = seededShuffle(elig, 104729 + phase * 6151 + section.length * 131 + elig.length * 17);
+  const ord = _order[key], L = ord.length, out = [];
+  for (let i = 0; i < count && i < L; i++) out.push(ord[(withinIdx * count + i) % L]);
+  return out;
+}
+// Build a 50-question paper: per-paper unique, answer positions randomized,
+// difficulty escalating by phase. The 30 papers draw from disjoint windows.
 function buildExam(set) {
   const items = [];
-  pickByDiff(GRAMMAR, set.diff, set.blueprint.grammar).forEach((g) =>
-    items.push({ iid: uid(), section: "grammar", type: "mcq", q: g.q, options: g.options, answer: g.answer, explain: g.explain }));
-  pickByDiff(VOCAB, set.diff, set.blueprint.vocab).forEach((v) =>
-    items.push({ iid: uid(), section: "vocab", type: "mcq", q: v.q, options: v.options, answer: v.answer, explain: v.explain }));
-  // reading: choose whole passages until we reach target sub-question count
-  let need = set.blueprint.reading;
-  const passages = shuffle(READING.filter((p) => p.diff <= set.diff));
-  const usePassages = passages.length ? passages : READING;
-  for (const p of usePassages) {
-    if (need <= 0) break;
-    p.subs.slice(0, Math.max(1, need)).forEach((sub) =>
-      items.push({ iid: uid(), section: "reading", type: "mcq", passageId: p.id, passageTitle: p.title, passage: p.passage, q: sub.q, options: sub.options, answer: sub.answer, explain: sub.explain }));
-    need -= p.subs.length;
-  }
-  pickByDiff(SJT, set.diff, set.blueprint.sjt).forEach((s) =>
-    items.push({ iid: uid(), section: "sjt", type: "sjt", q: s.q, options: s.options, best: s.best, explain: s.explain }));
-  if (set.blueprint.email > 0) {
-    const e = pickByDiff(EMAILS, set.diff, 1)[0];
-    items.push({ iid: uid(), section: "email", type: "email", prompt: e.prompt, minWords: e.minWords, keywords: e.keywords, explain: e.explain });
-  }
+  const within = (set.n - 1) % 10, phase = set.diff;
+  const bp = set.blueprint;
+  windowPick("grammar", phase, within, bp.grammar).forEach((g) => {
+    const r = randomizeOptions(g.options, g.answer);
+    items.push({ iid: uid(), section: "grammar", type: "mcq", q: g.q, options: r.options, answer: r.answer, explain: g.explain, level: g.diff || 2 });
+  });
+  windowPick("vocab", phase, within, bp.vocab).forEach((v) => {
+    const r = randomizeOptions(v.options, v.answer);
+    items.push({ iid: uid(), section: "vocab", type: "mcq", q: v.q, options: r.options, answer: r.answer, explain: v.explain, level: v.diff || 2 });
+  });
+  windowPick("reading", phase, within, bp.reading).forEach((sub) => {
+    const r = randomizeOptions(sub.options, sub.answer);
+    items.push({ iid: uid(), section: "reading", type: "mcq", passageTitle: sub.passageTitle, passage: sub.passage, q: sub.q, options: r.options, answer: r.answer, explain: sub.explain, level: sub.diff || 2 });
+  });
+  windowPick("sjt", phase, within, bp.sjt).forEach((s) => {
+    const r = randomizeSJT(s.options, s.best);
+    items.push({ iid: uid(), section: "sjt", type: "sjt", q: s.q, options: r.options, best: r.best, explain: s.explain, level: s.diff || 2 });
+  });
+  windowPick("email", phase, within, bp.email).forEach((e) => {
+    items.push({ iid: uid(), section: "email", type: "email", prompt: e.prompt, minWords: e.minWords, keywords: e.keywords, explain: e.explain, level: e.diff || 2 });
+  });
   return items;
 }
 
@@ -1005,7 +1172,7 @@ function Dashboard({ settings, results, active, go, onStartSet, onResume, onOpen
             <div className="flex items-center gap-4 mt-2">
               <ScoreRing value={stats.avg || 0} size={104} stroke={10} label="Avg" />
               <div className="text-sm space-y-1.5">
-                <div className="flex items-center gap-2"><Icon name="clipboard" size={14} className="text-sky-300" /> {stats.completed}/20 sets</div>
+                <div className="flex items-center gap-2"><Icon name="clipboard" size={14} className="text-sky-300" /> {stats.completed}/30 sets</div>
                 <div className="flex items-center gap-2"><Icon name="trophy" size={14} className="text-amber-300" /> Best {stats.best != null ? stats.best + "%" : "—"}</div>
                 <div className="flex items-center gap-2"><Icon name="keyboard" size={14} className="text-emerald-300" /> {stats.bestWpm != null ? stats.bestWpm + " WPM" : "No typing yet"}</div>
               </div>
@@ -1019,7 +1186,7 @@ function Dashboard({ settings, results, active, go, onStartSet, onResume, onOpen
         <Card><StatTile icon="clipboard" tone="sky" value={stats.n} label="Exams taken" /></Card>
         <Card><StatTile icon="chart" tone="emerald" value={stats.avg != null ? stats.avg + "%" : "—"} label="Average score" /></Card>
         <Card><StatTile icon="trophy" tone="amber" value={stats.best != null ? stats.best + "%" : "—"} label="Best score" /></Card>
-        <Card><StatTile icon="target" tone="indigo" value={stats.completed} label="Sets cleared" sub="of 20" /></Card>
+        <Card><StatTile icon="target" tone="indigo" value={stats.completed} label="Sets cleared" sub="of 30" /></Card>
       </div>
 
       {/* Modules */}
